@@ -1,0 +1,178 @@
+id: phaser_phaser_radar
+label: Phaser Radar
+category: '[phaser]'
+
+templates:
+  imports: from gnuradio.phaser import phaser_radar
+  make: |-
+    phaser_radar.blk(
+      ${sdr_uri},
+      ${sample_rate},
+      ${sdr_freq},
+      ${rx_enabled_channels},
+      ${rx_gain},
+      ${rx_offset_samps},
+      ${tx_enabled_channels},
+      ${tx_hardwaregain_chan0},
+      ${tx_hardwaregain_chan1},
+      ${tx_cyclic_buffer},
+      ${phaser_uri},
+      ${phaser_output_freq},
+      ${phaser_chan_phase},
+      ${phaser_chan_gain},
+      ${radar_mode},
+      ${num_bursts},
+      ${pri},
+      ${fmcw_sweep_duration},
+      ${fmcw_if_freq},
+      ${fmcw_sweep_bandwidth},
+      ${fmcw_ramp_mode},
+    )
+
+#  Make one 'parameters' list entry for every parameter you want settable from the GUI.
+#     Keys include:
+#     * id (makes the value accessible as keyname, e.g. in the make entry)
+#     * label (label shown in the GUI)
+#     * dtype (e.g. int, float, complex, byte, short, xxx_vector, ...)
+#     * default
+parameters:
+- id: sdr_uri
+  label: SDR URI
+  dtype: string
+  default: ip:192.168.2.1
+  category: SDR
+- id: phaser_uri
+  label: Phaser URI
+  dtype: string
+  default: "ip:phaser.local"
+  category: Phaser
+- id: sample_rate
+  label: Sample rate
+  dtype: float
+  default: 1e6
+  category: SDR
+- id: sdr_freq
+  label: SDR Center Frequency
+  dtype: float
+  default: 2.1e9
+  category: SDR
+- id: rx_enabled_channels
+  label: Rx Enabled Channels
+  dtype: int_vector
+  default: [0,1]
+  category: SDR
+- id: rx_gain
+  label: Rx Gain
+  dtype: float
+  default: 20
+  category: SDR
+  hide: part
+- id: rx_offset_samps
+  label: Rx Offset Samples
+  dtype: int
+  default: 62
+  category: SDR
+  hide: part
+# Tx params
+- id: tx_enabled_channels
+  label: Tx Enabled Channels
+  dtype: int_vector
+  default: [0,1]
+  category: SDR
+- id: tx_hardwaregain_chan0
+  label: Tx Hardware Gain (chan0)
+  dtype: float
+  default: -88
+  category: SDR
+  hide: part
+- id: tx_hardwaregain_chan1
+  label: Tx Hardware Gain (chan0)
+  dtype: float
+  default: -88
+  category: SDR
+  hide: part
+- id: tx_cyclic_buffer
+  label: Tx Cyclic buffer
+  dtype: enum
+  options: [True, False]
+  option_labels: ["True", "False"]
+  category: SDR
+  hide: part
+# Phaser params
+- id: phaser_output_freq
+  label: Phaser Output Frequency
+  dtype: float
+  default: 10e9
+  category: Phaser
+- id: phaser_chan_phase
+  label: Phaser channel phase shifts
+  dtype: float_vector
+  default: [0,0,0,0,0,0,0,0]
+  category: Phaser
+  hide: part
+- id: phaser_chan_gain
+  label: Phaser channel gains
+  dtype: float_vector
+  default: [64,64,64,64,64,64,64,64]
+  category: Phaser
+  hide: part
+# Radar params
+- id: radar_mode
+  label: Radar Mode
+  dtype: enum
+  options: ["'fmcw'", "'pulsed'"]
+  option_labels: ["FMCW", "Pulsed"]
+  category: Radar
+# Pulsed mode
+- id: num_bursts
+  label: Num of Pulses/Chirps
+  dtype: int
+  default: 1
+  category: Radar
+  hide: part
+- id: pri
+  label: Pulse Repetition Interval (PRI)
+  dtype: float
+  default: 1e-3
+  category: Radar
+  hide: ${'part' if radar_mode == "'pulsed'" else 'all'}
+# FMCW mode
+- id: fmcw_sweep_duration
+  label: Sweep duration
+  dtype: float
+  default: 500e-6
+  category: Radar
+  hide: ${'part' if radar_mode == "'fmcw'" else 'all'}
+- id: fmcw_sweep_bandwidth
+  label: Sweep Bandwidth
+  dtype: float
+  default: 500e6
+  category: Radar
+  hide: ${'part' if radar_mode == "'fmcw'" else 'all'}
+- id: fmcw_if_freq
+  label: IF Frequency
+  dtype: float
+  default: 100e3
+  category: Radar
+  hide: ${'part' if radar_mode == "'fmcw'" else 'all'}
+- id: fmcw_ramp_mode
+  label: Ramp Mode
+  dtype: enum
+  options: ["'single_sawtooth_burst'"]
+  option_labels: ["Single Sawtooth Burst"]
+  category: Radar
+  hide: ${'part' if radar_mode == "'fmcw'" else 'all'}
+
+
+inputs:
+- label: in
+  domain: message
+  optional: True
+
+outputs:
+- label: out
+  domain: message
+
+#  'file_format' specifies the version of the GRC yml format used in the file
+#  and should usually not be changed.
+file_format: 1
