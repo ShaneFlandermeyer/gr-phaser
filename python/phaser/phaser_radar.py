@@ -13,7 +13,7 @@ from gnuradio import gr
 import pmt
 import adi
 from typing import List
-
+import scipy
 
 class blk(gr.sync_block):
     """
@@ -84,12 +84,75 @@ class blk(gr.sync_block):
         self.fmcw_sweep_bandwidth = fmcw_sweep_bandwidth
         self.fmcw_if_freq = fmcw_if_freq
         self.fmcw_ramp_mode = fmcw_ramp_mode
+
+        self.angle_key = pmt.intern("angle")
+        self.chan_phase_key = pmt.intern("chan_phase")
+        self.chan_gain_key = pmt.intern("chan_gain")
         
         self.configure_hardware()
 
         self.main_thread = gr.threading.Thread(target=self.run)
         self.main_thread.start()
 
+    def handle_msg(self, msg):
+        data, meta = None, None
+        if pmt.is_dict(msg):
+            data, meta = None, msg
+        elif pmt.is_vector(msg):
+            data, meta = msg, None
+        elif pmt.is_pair(msg):
+            data, meta = pmt.car(msg), pmt.cdr(msg)
+        else:
+            self.logger.warn("Invalid message input: expected PMT dict, vector, or pair")
+        if data is not None:
+            if self.radar_mode.lower() == 'pulsed':
+                # Update tx data
+                iq = np.asarray(pmt.to_python(data)) * 2**14
+                self.sdr.tx_destroy_buffer()
+                self.sdr.tx([iq, iq])
+                self.tx_ready = True
+            else:
+                self.logger.warn("Invalid message input: FMCW mode does not support arbitrary waveforms")
+        
+        if meta is not None:
+            if pmt.dict_has_key(meta, self.angle_key):
+                angle = pmt.to_python(pmt.dict_ref(meta, self.angle_key, pmt.PMT_NIL))
+                self.update_steering_angle(angle)
+            if pmt.dict_has_key(meta, self.chan_phase_key):
+                chan_phase = pmt.to_python(pmt.dict_ref(meta, self.chan_phase_key, pmt.PMT_NIL))
+                for i in range(self.phaser.num_elements):
+                    self.phaser.set_chan_phase(i, chan_phase[i])
+            if pmt.dict_has_key(meta, self.chan_gain_key):
+                chan_gain = pmt.to_python(pmt.dict_ref(meta, self.chan_gain_key, pmt.PMT_NIL))
+                for i in range(self.phaser.num_elements):
+                    self.phaser.set_chan_gain(i, chan_gain[i])
+
+
+    def run(self):
+        while True:
+            if self.stop_called:
+                return
+            if self.tx_ready:
+                self.phaser._gpios.gpio_burst = 0
+                self.phaser._gpios.gpio_burst = 1
+                self.phaser._gpios.gpio_burst = 0
+                data = self.sdr.rx()
+                sum_data = np.sum(np.array(data), axis=0).astype(np.complex64)
+                sum_data = sum_data[self.rx_offset_samps:]
+                pmt_out = pmt.cons(pmt.make_dict(), pmt.to_pmt(sum_data))
+                self.message_port_pub(pmt.intern("out"), pmt_out)
+                # TODO: In FMCW mode, lop of the first so many samples as in the video
+
+    def stop(self):
+        self.stop_called = True
+        self.main_thread.join()
+
+        # Gracefully shut down pluto
+        self.sdr.tx_destroy_buffer()
+        self.sdr.rx_destroy_buffer()
+        self.sdr_pins.gpio_phaser_enable = False
+        return True
+    
     def configure_hardware(self):
         self.sdr = adi.ad9361(uri=self.sdr_ip)
         self.phaser = adi.CN0566(uri=self.phaser_uri, sdr=self.sdr)
@@ -114,9 +177,9 @@ class blk(gr.sync_block):
         self.phaser.configure(device_mode='rx')
         self.phaser.load_gain_cal()
         self.phaser.load_channel_cal()
-        for i in range(0, 8):
+        for i in range(self.phaser.num_elements):
             self.phaser.set_chan_phase(i, self.phaser_chan_phase[i])
-            self.phaser.set_chan_gain(i, self.phaser_chan_gain[i], apply_cal=True)
+            self.phaser.set_chan_gain(i, self.phaser_chan_gain[i])
         self.phaser._gpios.gpio_tx_sw = 0  # 0 = TX_OUT_2, 1 = TX_OUT_1
         self.phaser._gpios.gpio_vctrl_1 = 1 # 1=Use onboard PLL/LO source  (0=disable PLL and VCO, and set switch to use external LO input)
         self.phaser._gpios.gpio_vctrl_2 = 1 # 1=Send LO to transmit circuitry  (0=disable Tx path, and send LO to LO_OUT)
@@ -132,7 +195,7 @@ class blk(gr.sync_block):
         else:
             self.configure_pulsed()
 
-    def configure_pulsed(self):
+    def configure_pulsed(self) -> None:
         self.sdr.rx_buffer_size = self.rx_offset_samps + round(self.pri * self.sample_rate * self.num_bursts)
         self.phaser.frequency = int((self.phaser_output_freq + self.sdr_freq) / 4)
             
@@ -168,7 +231,7 @@ class blk(gr.sync_block):
         tddn.sync_reset    = False # reset the internal counter when receiving a sync event
         tddn.enable        = True  # enable TDD engine
 
-    def configure_fmcw(self):
+    def configure_fmcw(self) -> None:
         # Configure ADF4159 ramping PLL
         vco_freq = self.phaser_output_freq + self.sdr_freq + self.fmcw_if_freq
         num_steps = int(self.fmcw_sweep_duration * 1e6) # One step per us
@@ -232,52 +295,7 @@ class blk(gr.sync_block):
         self.sdr.tx([iq, iq])
         self.tx_ready = True
 
-    
-    def handle_msg(self, msg):
-        data, meta = None, None
-        if pmt.is_dict(msg):
-            data, meta = None, msg
-        elif pmt.is_vector(msg):
-            data, meta = msg, None
-        elif pmt.is_pair(msg):
-            data, meta = pmt.car(msg), pmt.cdr(msg)
-        else:
-            self.logger.warn("Invalid message input: expected PMT dict, vector, or pair")
-        if data is not None:
-            if self.radar_mode.lower() == 'pulsed':
-                # Update tx data
-                iq = np.asarray(pmt.to_python(data)) * 2**14
-                self.sdr.tx_destroy_buffer()
-                self.sdr.tx([iq, iq])
-                self.tx_ready = True
-            else:
-                self.logger.warn("Invalid message input: FMCW mode does not support arbitrary waveforms")
-        if meta is not None:
-            # TODO: Update phaser/self.sdr parameters
-            pass
-
-    def run(self):
-        while True:
-            if self.stop_called:
-                return
-            if self.tx_ready:
-                self.phaser._gpios.gpio_burst = 0
-                self.phaser._gpios.gpio_burst = 1
-                self.phaser._gpios.gpio_burst = 0
-                data = self.sdr.rx()
-                sum_data = np.sum(np.array(data), axis=0).astype(np.complex64)
-                sum_data = sum_data[self.rx_offset_samps:]
-                pmt_out = pmt.cons(pmt.make_dict(), pmt.to_pmt(sum_data))
-                self.message_port_pub(pmt.intern("out"), pmt_out)
-                # TODO: In FMCW mode, lop of the first so many samples as in the video
-
-    def stop(self):
-        self.stop_called = True
-        self.main_thread.join()
-
-        # Gracefully shut down pluto
-        self.sdr.tx_destroy_buffer()
-        self.sdr.rx_destroy_buffer()
-        self.sdr_pins.gpio_phaser_enable = False
-        return True
-    
+    def update_steering_angle(self, angle) -> None:
+        c = scipy.constants.c
+        phase_delta = 2 * np.pi * self.phaser_output_freq * self.phaser.element_spacing * np.sin(np.radians(angle)) / c
+        self.phaser.set_beam_phase_diff(np.degrees(phase_delta))
