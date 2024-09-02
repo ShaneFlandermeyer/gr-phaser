@@ -52,12 +52,14 @@ class blk(gr.sync_block):
             out_sig=[])
         # TODO: Set a variable number of input/output ports based on active channels
         self.message_port_register_in(pmt.intern("in"))
-        self.message_port_register_out(pmt.intern("out"))
         self.set_msg_handler(pmt.intern("in"), self.handle_msg)
-        self.tx_ready = False
-        self.stop_called = False
-        self.logger = gr.logger(self.alias())
 
+        for chan_ind in rx_enabled_channels:
+            self.message_port_register_out(pmt.intern(f"beam{chan_ind}"))
+
+        self.started = False
+        self.stopped = False
+        self.logger = gr.logger(self.alias())
 
         # Rx params
         self.sdr_ip = sdr_ip
@@ -95,22 +97,23 @@ class blk(gr.sync_block):
         self.main_thread.start()
 
     def handle_msg(self, msg):
-        data, meta = None, None
         if pmt.is_dict(msg):
-            data, meta = None, msg
+            meta, data = msg, None
         elif pmt.is_vector(msg):
-            data, meta = msg, None
+            meta, data = None, msg
         elif pmt.is_pair(msg):
-            data, meta = pmt.car(msg), pmt.cdr(msg)
+            meta, data = pmt.car(msg), pmt.cdr(msg)
         else:
             self.logger.warn("Invalid message input: expected PMT dict, vector, or pair")
+            return
+        
         if data is not None:
             if self.radar_mode.lower() == 'pulsed':
                 # Update tx data
                 iq = np.asarray(pmt.to_python(data)) * 2**14
                 self.sdr.tx_destroy_buffer()
                 self.sdr.tx([iq, iq])
-                self.tx_ready = True
+                self.started = True
             else:
                 self.logger.warn("Invalid message input: FMCW mode does not support arbitrary waveforms")
         
@@ -129,22 +132,28 @@ class blk(gr.sync_block):
 
 
     def run(self):
+        while not self.started:
+            time.sleep(1e-3)
+
         while True:
-            if self.stop_called:
+            if self.stopped:
                 return
-            if self.tx_ready:
-                self.phaser._gpios.gpio_burst = 0
-                self.phaser._gpios.gpio_burst = 1
-                self.phaser._gpios.gpio_burst = 0
-                data = self.sdr.rx()
-                sum_data = np.sum(np.array(data), axis=0).astype(np.complex64)
-                sum_data = sum_data[self.rx_offset_samps:]
-                pmt_out = pmt.cons(pmt.make_dict(), pmt.to_pmt(sum_data))
-                self.message_port_pub(pmt.intern("out"), pmt_out)
-                # TODO: In FMCW mode, lop of the first so many samples as in the video
+            
+            self.phaser._gpios.gpio_burst = 0
+            self.phaser._gpios.gpio_burst = 1
+
+            rx_data = self.sdr.rx()
+            for i, data in enumerate(rx_data):
+                chan_ind = self.rx_enabled_channels[i]
+                # TODO: Fill out message meta
+                meta = pmt.make_dict()
+                data = pmt.to_pmt(data[self.rx_offset_samps:].astype(np.complex64))
+                msg = pmt.cons(meta, data)
+                self.message_port_pub(pmt.intern(f"beam{chan_ind}"), msg)
+            # TODO: In FMCW mode, lop of the first so many samples as in the video
 
     def stop(self):
-        self.stop_called = True
+        self.stopped = True
         self.main_thread.join()
 
         # Gracefully shut down pluto
@@ -185,10 +194,8 @@ class blk(gr.sync_block):
         self.phaser._gpios.gpio_vctrl_2 = 1 # 1=Send LO to transmit circuitry  (0=disable Tx path, and send LO to LO_OUT)
     
         self.sdr_pins = adi.one_bit_adc_dac(self.sdr_ip)
-        time.sleep(0.1)
         self.sdr_pins.gpio_phaser_enable = True # when true, each channel[1] start outputs a pulse to Pluto L10P pin (TXDATA_1V8 on Phaser schematic)
         self.sdr_pins.gpio_tdd_ext_sync = True
-        time.sleep(0.1)
 
         if self.radar_mode.lower() == 'fmcw':
             self.configure_fmcw()
@@ -196,16 +203,22 @@ class blk(gr.sync_block):
             self.configure_pulsed()
 
     def configure_pulsed(self) -> None:
-        self.sdr.rx_buffer_size = self.rx_offset_samps + round(self.pri * self.sample_rate * self.num_bursts)
+        num_burst_samps = round(self.pri * self.sample_rate)
+        num_buffer_samps = num_burst_samps * self.num_bursts
+        # Decimation factor for frame_length_raw (from SDR object)
+        if (self.sample_rate <= 20e6):
+            dec = 4
+        else:
+            dec = 2
+        
+        self.sdr.rx_buffer_size = num_buffer_samps + self.rx_offset_samps
         self.phaser.frequency = int((self.phaser_output_freq + self.sdr_freq) / 4)
-            
         # Configure TDD
         tddn = adi.tddn(self.sdr_ip)
         tddn.enable = False
-        frame_length_ms = self.pri * 1e3
 
         tddn.startup_delay_ms        = 0
-        tddn.frame_length_ms         = frame_length_ms
+        tddn.frame_length_raw = num_burst_samps * dec - 1
         tddn.burst_count             = 0
         tddn.internal_sync_period_ms = 0
 
@@ -275,16 +288,16 @@ class blk(gr.sync_block):
         tddn.channel[2].enable   = 1
 
         tddn.sync_external = True  # enable external sync trigger
-        tddn.sync_internal = False # enable the internal sync trigger
+        tddn.sync_internal = True # enable the internal sync trigger
         tddn.sync_reset    = False # reset the internal counter when receiving a sync event
         tddn.enable        = True  # enable TDD engine
-        self.sdr.rx_buffer_size = self.rx_offset_samps + int(self.sample_rate * frame_length_ms*1e-3 * self.num_bursts)
+        self.sdr.rx_buffer_size = self.rx_offset_samps + int(self.sdr.sample_rate * frame_length_ms*1e-3 * self.num_bursts)
 
 
         # IF Carrier
         N = self.sdr.rx_buffer_size
         fc = int(self.fmcw_if_freq)
-        ts = 1 / float(self.sample_rate)
+        ts = 1 / float(self.sdr.sample_rate)
         t = np.arange(0, N * ts, ts)
         i = np.cos(2 * np.pi * t * fc)
         q = np.sin(2 * np.pi * t * fc)
@@ -293,7 +306,7 @@ class blk(gr.sync_block):
         self.sdr._ctx.set_timeout(30000)
         self.sdr._rx_init_channels()
         self.sdr.tx([iq, iq])
-        self.tx_ready = True
+        self.started = True
 
     def update_steering_angle(self, angle) -> None:
         c = scipy.constants.c

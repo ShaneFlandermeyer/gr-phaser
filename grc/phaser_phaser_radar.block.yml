@@ -70,7 +70,7 @@ parameters:
 - id: rx_offset_samps
   label: Rx Offset Samples
   dtype: int
-  default: 62
+  default: 0
   category: SDR
   hide: part
 # Tx params
@@ -170,8 +170,12 @@ inputs:
   optional: True
 
 outputs:
-- label: out
+- label: beam0
   domain: message
+  optional: True
+- label: beam1
+  domain: message
+  optional: True
 
 #  'file_format' specifies the version of the GRC yml format used in the file
 #  and should usually not be changed.
