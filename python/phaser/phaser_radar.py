@@ -28,7 +28,9 @@ class blk(gr.sync_block):
                # Rx params
                rx_enabled_channels: List[int],
                rx_gain: float,
-               rx_offset_samps: int,
+               rx_offset_samples: int,
+               pulse_start_samples: int,
+               pulse_stop_samples: int,
                # Tx params
                tx_enabled_channels: List[int],
                tx_hardwaregain_chan0: float,
@@ -52,45 +54,14 @@ class blk(gr.sync_block):
                            name="phaser_radar",
                            in_sig=[],
                            out_sig=[])
-    # TODO: Set a variable number of input/output ports based on active channels
     self.message_port_register_in(pmt.intern("in"))
+    self.message_port_register_out(pmt.intern("out"))
     self.set_msg_handler(pmt.intern("in"), self.handle_msg)
-    # Set phaser metadata
+    # Set phaser metadata (for loop across init args)
     self.meta = pmt.make_dict()
-    pmt.dict_add(self.meta, pmt.intern("core:sample_rate"),
-                 pmt.to_pmt(sample_rate))
-    pmt.dict_add(self.meta, pmt.intern(
-        "phaser:intermediate_frequency"), pmt.to_pmt(sdr_freq))
-    pmt.dict_add(self.meta, pmt.intern("phaser:frequency"),
-                 pmt.to_pmt(phaser_output_freq))
-    pmt.dict_add(self.meta, pmt.intern("phaser:rx_enabled_channels"),
-                 pmt.to_pmt(rx_enabled_channels))
-    pmt.dict_add(self.meta, pmt.intern("phaser:tx_enabled_channels"),
-                 pmt.to_pmt(tx_enabled_channels))
-    pmt.dict_add(self.meta, pmt.intern("phaser:rx_gain"),
-                 pmt.to_pmt(rx_gain))
-    pmt.dict_add(self.meta, pmt.intern("phaser:tx_hardwaregain_chan0"),
-                 pmt.to_pmt(tx_hardwaregain_chan0))
-    pmt.dict_add(self.meta, pmt.intern("phaser:tx_hardwaregain_chan1"),
-                 pmt.to_pmt(tx_hardwaregain_chan1))
-    pmt.dict_add(self.meta, pmt.intern("phaser:radar_mode"),
-                 pmt.to_pmt(radar_mode))
-    pmt.dict_add(self.meta, pmt.intern("phaser:num_bursts"),
-                 pmt.to_pmt(num_bursts))
-    pmt.dict_add(self.meta, pmt.intern("phaser:prf"),
-                 pmt.to_pmt(1/pri))
-    if radar_mode.lower() == 'fmcw':
-      pmt.dict_add(self.meta, pmt.intern("phaser:fmcw_sweep_duration"),
-                   pmt.to_pmt(fmcw_sweep_duration))
-      pmt.dict_add(self.meta, pmt.intern("phaser:fmcw_sweep_bandwidth"),
-                   pmt.to_pmt(fmcw_sweep_bandwidth))
-      pmt.dict_add(self.meta, pmt.intern("phaser:fmcw_if_freq"),
-                   pmt.to_pmt(fmcw_if_freq))
-      pmt.dict_add(self.meta, pmt.intern("phaser:fmcw_ramp_mode"),
-                   pmt.to_pmt(fmcw_ramp_mode))
-
-    for chan_ind in rx_enabled_channels:
-      self.message_port_register_out(pmt.intern(f"beam{chan_ind}"))
+    for key, val in locals().items():
+      key = f"phaser:{key}"
+      self.meta = pmt.dict_add(self.meta, pmt.intern(key), pmt.to_pmt(val))
 
     self.started = False
     self.stopped = False
@@ -102,7 +73,9 @@ class blk(gr.sync_block):
     self.sdr_freq = sdr_freq
     self.rx_enabled_channels = rx_enabled_channels
     self.rx_gain = rx_gain
-    self.rx_offset_samps = rx_offset_samps
+    self.rx_offset_samples = rx_offset_samples
+    self.pulse_start_samples = pulse_start_samples
+    self.pulse_stop_samples = pulse_stop_samples
     # Tx params
     self.tx_enabled_channels = tx_enabled_channels
     self.tx_hardwaregain_chan0 = tx_hardwaregain_chan0
@@ -169,8 +142,7 @@ class blk(gr.sync_block):
         for i in range(self.phaser.num_elements):
           self.phaser.set_chan_gain(i, chan_gain[i])
 
-      # Update metadata dict
-      pmt.dict_update(self.meta, meta)
+      self.meta = pmt.dict_update(self.meta, meta)
 
   def run(self):
     while not self.started:
@@ -183,15 +155,22 @@ class blk(gr.sync_block):
       self.phaser._gpios.gpio_burst = 0
       self.phaser._gpios.gpio_burst = 1
 
+      msg = self.meta
       rx_data = self.sdr.rx()
       for i, data in enumerate(rx_data):
         chan_ind = self.rx_enabled_channels[i]
-        # TODO: Fill out message meta
-        meta = pmt.make_dict()
-        data = pmt.to_pmt(data[self.rx_offset_samps:].astype(np.complex64))
-        msg = pmt.cons(meta, data)
-        self.message_port_pub(pmt.intern(f"beam{chan_ind}"), msg)
-      # TODO: In FMCW mode, lop of the first so many samples as in the video
+
+        data = data[self.rx_offset_samples:].copy().astype(np.complex64)
+        data = data.reshape((self.num_bursts, -1))
+        start = self.pulse_start_samples
+        if self.pulse_stop_samples > 0 and self.pulse_stop_samples < data.shape[1]:
+          stop = self.pulse_stop_samples
+        else:
+          stop = data.shape[1]
+        data = data[:, start:stop]
+        msg = pmt.dict_add(msg, pmt.intern(
+            f"beam{chan_ind}"), pmt.to_pmt(data))
+        self.message_port_pub(pmt.intern("out"), self.meta)
 
   def stop(self):
     self.stopped = True
@@ -257,7 +236,7 @@ class blk(gr.sync_block):
     else:
       dec = 2
 
-    self.sdr.rx_buffer_size = num_buffer_samps + self.rx_offset_samps
+    self.sdr.rx_buffer_size = num_buffer_samps + self.rx_offset_samples
     self.phaser.frequency = int((self.phaser_output_freq + self.sdr_freq) / 4)
     # Configure TDD
     tddn = adi.tddn(self.sdr_ip)
@@ -337,7 +316,7 @@ class blk(gr.sync_block):
     tddn.sync_internal = True  # enable the internal sync trigger
     tddn.sync_reset = False  # reset the internal counter when receiving a sync event
     tddn.enable = True  # enable TDD engine
-    self.sdr.rx_buffer_size = self.rx_offset_samps + \
+    self.sdr.rx_buffer_size = self.rx_offset_samples + \
         int(self.sdr.sample_rate * frame_length_ms*1e-3 * self.num_bursts)
 
     # IF Carrier

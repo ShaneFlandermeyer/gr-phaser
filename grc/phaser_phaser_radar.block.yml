@@ -11,7 +11,9 @@ templates:
       ${sdr_freq},
       ${rx_enabled_channels},
       ${rx_gain},
-      ${rx_offset_samps},
+      ${rx_offset_samples},
+      ${pulse_start_sample},
+      ${pulse_stop_sample},
       ${tx_enabled_channels},
       ${tx_hardwaregain_chan0},
       ${tx_hardwaregain_chan1},
@@ -29,12 +31,6 @@ templates:
       ${fmcw_ramp_mode},
     )
 
-#  Make one 'parameters' list entry for every parameter you want settable from the GUI.
-#     Keys include:
-#     * id (makes the value accessible as keyname, e.g. in the make entry)
-#     * label (label shown in the GUI)
-#     * dtype (e.g. int, float, complex, byte, short, xxx_vector, ...)
-#     * default
 parameters:
 - id: sdr_uri
   label: SDR URI
@@ -67,10 +63,22 @@ parameters:
   default: 20
   category: SDR
   hide: part
-- id: rx_offset_samps
+- id: rx_offset_samples
   label: Rx Offset Samples
   dtype: int
   default: 0
+  category: SDR
+  hide: part
+- id: pulse_start_sample
+  label: Pulse Start Sample
+  dtype: int
+  default: 0
+  category: SDR
+  hide: part
+- id: pulse_stop_sample
+  label: Pulse Stop Sample
+  dtype: int
+  default: -1
   category: SDR
   hide: part
 # Tx params
@@ -170,10 +178,7 @@ inputs:
   optional: True
 
 outputs:
-- label: beam0
-  domain: message
-  optional: True
-- label: beam1
+- label: out
   domain: message
   optional: True
 
