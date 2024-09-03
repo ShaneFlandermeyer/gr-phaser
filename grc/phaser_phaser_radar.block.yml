@@ -12,8 +12,8 @@ templates:
       ${rx_enabled_channels},
       ${rx_gain},
       ${rx_offset_samples},
-      ${pulse_start_sample},
-      ${pulse_stop_sample},
+      ${burst_start_sample},
+      ${burst_stop_sample},
       ${tx_enabled_channels},
       ${tx_hardwaregain_chan0},
       ${tx_hardwaregain_chan1},
@@ -69,14 +69,14 @@ parameters:
   default: 0
   category: SDR
   hide: part
-- id: pulse_start_sample
-  label: Pulse Start Sample
+- id: burst_start_sample
+  label: Burst Start Sample
   dtype: int
   default: 0
   category: SDR
   hide: part
-- id: pulse_stop_sample
-  label: Pulse Stop Sample
+- id: burst_stop_sample
+  label: Burst Stop Sample
   dtype: int
   default: -1
   category: SDR

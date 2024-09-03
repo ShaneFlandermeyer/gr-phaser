@@ -29,8 +29,8 @@ class blk(gr.sync_block):
                rx_enabled_channels: List[int],
                rx_gain: float,
                rx_offset_samples: int,
-               pulse_start_samples: int,
-               pulse_stop_samples: int,
+               burst_start_sample: int,
+               burst_stop_sample: int,
                # Tx params
                tx_enabled_channels: List[int],
                tx_hardwaregain_chan0: float,
@@ -74,8 +74,8 @@ class blk(gr.sync_block):
     self.rx_enabled_channels = rx_enabled_channels
     self.rx_gain = rx_gain
     self.rx_offset_samples = rx_offset_samples
-    self.pulse_start_samples = pulse_start_samples
-    self.pulse_stop_samples = pulse_stop_samples
+    self.burst_start_sample = burst_start_sample
+    self.burst_stop_sample = burst_stop_sample
     # Tx params
     self.tx_enabled_channels = tx_enabled_channels
     self.tx_hardwaregain_chan0 = tx_hardwaregain_chan0
@@ -162,9 +162,9 @@ class blk(gr.sync_block):
 
         data = data[self.rx_offset_samples:].copy().astype(np.complex64)
         data = data.reshape((self.num_bursts, -1))
-        start = self.pulse_start_samples
-        if self.pulse_stop_samples > 0 and self.pulse_stop_samples < data.shape[1]:
-          stop = self.pulse_stop_samples
+        start = self.burst_start_sample
+        if self.burst_stop_sample > 0 and self.burst_stop_sample < data.shape[1]:
+          stop = self.burst_stop_sample
         else:
           stop = data.shape[1]
         data = data[:, start:stop]
