@@ -78,7 +78,7 @@ class blk(gr.sync_block):
     pmt.dict_add(self.meta, pmt.intern("phaser:num_bursts"),
                  pmt.to_pmt(num_bursts))
     pmt.dict_add(self.meta, pmt.intern("phaser:prf"),
-                 pmt.to_pmt(pri))
+                 pmt.to_pmt(1/pri))
     if radar_mode.lower() == 'fmcw':
       pmt.dict_add(self.meta, pmt.intern("phaser:fmcw_sweep_duration"),
                    pmt.to_pmt(fmcw_sweep_duration))
