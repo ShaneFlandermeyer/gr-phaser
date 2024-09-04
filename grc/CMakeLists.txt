@@ -6,4 +6,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 install(FILES
-    phaser_phaser_radar.block.yml DESTINATION share/gnuradio/grc/blocks)
+    phaser_phaser_radar.block.yml
+    phaser_sum_beams.block.yml DESTINATION share/gnuradio/grc/blocks)

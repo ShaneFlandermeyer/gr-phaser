@@ -11,7 +11,8 @@
 ########################################################################
 include(GrPlatform) #define LIB_SUFFIX
 
-list(APPEND phaser_sources)
+list(APPEND phaser_sources
+    sum_beams_impl.cc)
 
 set(phaser_sources
     "${phaser_sources}"

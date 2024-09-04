@@ -42,7 +42,31 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [408, 48.0]
+    coordinate: [408, 80.0]
+    rotation: 0
+    state: enabled
+- name: center_freq
+  id: variable
+  parameters:
+    comment: ''
+    value: 10e9
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [496, 80.0]
+    rotation: 0
+    state: enabled
+- name: ncpi
+  id: variable
+  parameters:
+    comment: ''
+    value: '32'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [592, 80.0]
     rotation: 0
     state: enabled
 - name: rpi_ip
@@ -54,7 +78,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [264, 48.0]
+    coordinate: [264, 80.0]
     rotation: 0
     state: enabled
 - name: samp_rate
@@ -66,48 +90,36 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [168, 48.0]
+    coordinate: [168, 80.0]
     rotation: 0
     state: enabled
-- name: epy_block_0
-  id: epy_block
+- name: import_0
+  id: import
   parameters:
-    _source_code: "\"\"\"\nEmbedded Python Blocks:\n\nEach time this file is saved,\
-      \ GRC will instantiate the first class it finds\nto get ports and parameters\
-      \ of your block. The arguments to __init__  will\nbe the parameters. All of\
-      \ them are required to have default values!\n\"\"\"\n\nimport numpy as np\n\
-      from gnuradio import gr\nimport pmt\nimport re\n\n\nclass blk(gr.sync_block):\
-      \  # other base classes are basic_block, decim_block, interp_block\n  \"\"\"\
-      Embedded Python Block example - a simple multiply const\"\"\"\n\n  def __init__(self,\
-      \ example_param=1.0):  # only default arguments here\n    \"\"\"arguments to\
-      \ this function show up as parameters in GRC\"\"\"\n    gr.sync_block.__init__(\n\
-      \        self,\n        name='Embedded Python Block',   # will show up in GRC\n\
-      \        in_sig=[],\n        out_sig=[]\n    )\n    # if an attribute with the\
-      \ same name as a parameter is found,\n    # a callback is registered (properties\
-      \ work, too).\n    self.example_param = example_param\n\n    self.message_port_register_in(pmt.intern('in'))\n\
-      \    self.message_port_register_out(pmt.intern('out'))\n    self.set_msg_handler(pmt.intern('in'),\
-      \ self.handle_msg)\n\n  def handle_msg(self, msg):\n    # Sum the data in phaser:beam0\
-      \ and phaser:beam1\n    meta = msg\n    items = pmt.to_python(msg)\n    # Sum\
-      \ any items whose key matches the regex\n    beam_key_pattern = 'phaser:beam[0-9]+'\n\
-      \    beams = []\n    for key, val in items.items():\n      if re.match(beam_key_pattern,\
-      \ key):\n        beams.append(val)\n        meta = pmt.dict_delete(meta, pmt.intern(key))\n\
-      \n    # Sum the beams and send to PDU\n    data = np.sum(beams, axis=0)\n  \
-      \  self.message_port_pub(pmt.intern('out'),\n                          pmt.cons(meta,\
-      \ pmt.to_pmt(data)))\n"
-    affinity: ''
     alias: ''
     comment: ''
-    example_param: '1.0'
-    maxoutbuf: '0'
-    minoutbuf: '0'
+    imports: import numpy as np
   states:
-    _io_cache: ('Embedded Python Block', 'blk', [('example_param', '1.0')], [('in',
-      'message', 1)], [('out', 'message', 1)], 'Embedded Python Block example - a
-      simple multiply const', ['example_param'])
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [416, 312.0]
+    coordinate: [168, 8.0]
+    rotation: 0
+    state: enabled
+- name: phaser_sum_beams_0
+  id: phaser_sum_beams
+  parameters:
+    affinity: ''
+    alias: ''
+    beam_key_pattern: phaser:beam[0-9]+
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [376, 432.0]
     rotation: 0
     state: enabled
 - name: plasma_lfm_source_0
@@ -133,7 +145,53 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [192, 160.0]
+    coordinate: [176, 184.0]
+    rotation: 0
+    state: enabled
+- name: plasma_pulse_doppler_0
+  id: plasma_pulse_doppler
+  parameters:
+    affinity: ''
+    alias: ''
+    backend: plasma.Device.DEFAULT
+    comment: ''
+    depth: '1'
+    doppler_fft_size_key: doppler_fft_size
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    n_pulse_cpi: ncpi
+    nfft: ncpi
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [632, 296.0]
+    rotation: 0
+    state: enabled
+- name: plasma_range_doppler_sink_0
+  id: plasma_range_doppler_sink
+  parameters:
+    affinity: ''
+    alias: ''
+    center_freq: center_freq
+    center_freq_key: phaser:frequency
+    comment: ''
+    depth: '1'
+    detection_indices_key: detection_indices
+    dynamic_range: '60'
+    dynamic_range_key: dynamic_range
+    gui_hint: ''
+    n_matrix_col_key: n_matrix_col
+    nrow: ncpi
+    prf_key: phaser:prf
+    pulsewidth_key: radar:duration
+    samp_rate: samp_rate
+    samp_rate_key: core:sample_rate
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [864, 296.0]
     rotation: 0
     state: enabled
 - name: qtgui_time_sink_x_0
@@ -230,7 +288,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [672, 304.0]
+    coordinate: [624, 424.0]
     rotation: 0
     state: enabled
 - name: zeromq_pull_msg_source_0
@@ -248,7 +306,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [168, 312.0]
+    coordinate: [128, 424.0]
     rotation: 0
     state: enabled
 - name: zeromq_push_msg_sink_0
@@ -264,15 +322,18 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [456, 176.0]
+    coordinate: [472, 200.0]
     rotation: 0
     state: enabled
 
 connections:
-- [epy_block_0, out, qtgui_time_sink_x_0, in]
+- [phaser_sum_beams_0, out, plasma_pulse_doppler_0, rx]
+- [phaser_sum_beams_0, out, qtgui_time_sink_x_0, in]
+- [plasma_lfm_source_0, out, plasma_pulse_doppler_0, tx]
 - [plasma_lfm_source_0, out, zeromq_push_msg_sink_0, in]
-- [zeromq_pull_msg_source_0, out, epy_block_0, in]
+- [plasma_pulse_doppler_0, out, plasma_range_doppler_sink_0, in]
+- [zeromq_pull_msg_source_0, out, phaser_sum_beams_0, in]
 
 metadata:
   file_format: 1
-  grc_version: v3.10.11.0-1-gee27d6f3
+  grc_version: 3.10.9.2

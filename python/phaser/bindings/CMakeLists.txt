@@ -24,7 +24,8 @@ include(GrPybind)
 # Python Bindings
 ########################################################################
 
-list(APPEND phaser_python_files python_bindings.cc)
+list(APPEND phaser_python_files
+    sum_beams_python.cc python_bindings.cc)
 
 gr_pybind_make_oot(phaser ../../.. gr::phaser "${phaser_python_files}")
 

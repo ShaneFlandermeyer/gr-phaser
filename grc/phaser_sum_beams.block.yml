@@ -1,0 +1,26 @@
+id: phaser_sum_beams
+label: Sum Beams
+category: "[phaser]"
+
+templates:
+  imports: from gnuradio import phaser
+  make: phaser.sum_beams(${beam_key_pattern})
+
+#  Make one 'parameters' list entry for every parameter you want settable from
+parameters:
+  - id: beam_key_pattern
+    label: Beam Key Pattern
+    dtype: string
+    default: "phaser:beam[0-9]+"
+
+inputs:
+  - id: in
+    domain: message
+
+outputs:
+  - id: out
+    domain: message
+
+#  'file_format' specifies the version of the GRC yml format used in the file
+#  and should usually not be changed.
+file_format: 1

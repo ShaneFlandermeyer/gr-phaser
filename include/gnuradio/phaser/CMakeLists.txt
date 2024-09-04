@@ -9,4 +9,5 @@
 ########################################################################
 # Install public header files
 ########################################################################
-install(FILES api.h DESTINATION include/gnuradio/phaser)
+install(FILES api.h
+    sum_beams.h DESTINATION include/gnuradio/phaser)
