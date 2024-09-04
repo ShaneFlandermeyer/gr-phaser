@@ -41,6 +41,8 @@ class blk(gr.sync_block):
                phaser_output_freq: float,
                phaser_chan_phase: List[float],
                phaser_chan_gain: List[float],
+               gain_cal_file: str,
+               phase_cal_file: str,
                # Radar params
                radar_mode: str,
                num_bursts: int,
@@ -60,6 +62,8 @@ class blk(gr.sync_block):
     # Set phaser metadata (for loop across init args)
     self.meta = pmt.make_dict()
     for key, val in locals().items():
+      if key == "self":
+          continue
       key = f"phaser:{key}"
       self.meta = pmt.dict_add(self.meta, pmt.intern(key), pmt.to_pmt(val))
 
@@ -86,6 +90,8 @@ class blk(gr.sync_block):
     self.phaser_output_freq = phaser_output_freq
     self.phaser_chan_phase = phaser_chan_phase
     self.phaser_chan_gain = phaser_chan_gain
+    self.gain_cal_file = gain_cal_file
+    self.phase_cal_file = phase_cal_file
     # Radar params
     self.radar_mode = radar_mode
     self.num_bursts = num_bursts
@@ -168,8 +174,8 @@ class blk(gr.sync_block):
           stop = data.shape[1]
         data = data[:, start:stop] / 2**11
         msg = pmt.dict_add(msg, pmt.intern(
-            f"beam{chan_ind}"), pmt.to_pmt(data))
-        self.message_port_pub(pmt.intern("out"), self.meta)
+            f"phaser:beam{chan_ind}"), pmt.to_pmt(data))
+      self.message_port_pub(pmt.intern("out"), msg)
 
   def stop(self):
     self.stopped = True
@@ -191,10 +197,9 @@ class blk(gr.sync_block):
     self.sdr.rx_enabled_channels = self.rx_enabled_channels
     self.sdr.gain_control_mode_chan0 = 'manual'  # manual or slow_attack
     self.sdr.gain_control_mode_chan1 = 'manual'  # manual or slow_attack
-    self.sdr.rx_hardwaregain_chan0 = int(
-        self.rx_gain)   # must be between -3 and 70
-    self.sdr.rx_hardwaregain_chan1 = int(
-        self.rx_gain)   # must be between -3 and 70
+    # Between -3 and 70
+    self.sdr.rx_hardwaregain_chan0 = int(self.rx_gain)
+    self.sdr.rx_hardwaregain_chan1 = int(self.rx_gain)
 
     # Configure Tx
     self.sdr.tx_lo = int(self.sdr_freq)
@@ -205,8 +210,10 @@ class blk(gr.sync_block):
 
     # Configure phaser
     self.phaser.configure(device_mode='rx')
-    self.phaser.load_gain_cal()
-    self.phaser.load_channel_cal()
+    if self.gain_cal_file:
+        self.phaser.load_gain_cal()
+    if self.phase_cal_file:
+        self.phaser.load_channel_cal()
     for i in range(self.phaser.num_elements):
       self.phaser.set_chan_phase(i, self.phaser_chan_phase[i])
       self.phaser.set_chan_gain(i, self.phaser_chan_gain[i])
@@ -284,13 +291,23 @@ class blk(gr.sync_block):
     self.phaser.tx_trig_en = 1
     self.phaser.enable = 0
 
+    num_burst_samps = round(self.fmcw_sweep_duration * self.sample_rate)
+    num_buffer_samps = num_burst_samps * self.num_bursts
+    # Decimation factor for frame_length_raw (from SDR object)
+    if (self.sample_rate <= 20e6):
+      dec = 4
+    else:
+      dec = 2
+
+    self.sdr.rx_buffer_size = num_buffer_samps + self.rx_offset_samples
+
+
     # Configure TDD
     tddn = adi.tddn(self.sdr_ip)
     tddn.enable = False
-    frame_length_ms = self.fmcw_sweep_duration * 1e3
 
     tddn.startup_delay_ms = 0
-    tddn.frame_length_ms = frame_length_ms
+    tddn.frame_length_raw = num_burst_samps * dec - 1
     tddn.burst_count = self.num_bursts
     tddn.internal_sync_period_ms = 0
 
@@ -315,8 +332,6 @@ class blk(gr.sync_block):
     tddn.sync_internal = True  # enable the internal sync trigger
     tddn.sync_reset = False  # reset the internal counter when receiving a sync event
     tddn.enable = True  # enable TDD engine
-    self.sdr.rx_buffer_size = self.rx_offset_samples + \
-        int(self.sdr.sample_rate * frame_length_ms*1e-3 * self.num_bursts)
 
     # IF Carrier
     N = self.sdr.rx_buffer_size
