@@ -167,7 +167,7 @@ class blk(gr.sync_block):
           stop = self.burst_stop_sample
         else:
           stop = data.shape[1]
-        data = data[:, start:stop]
+        data = data[:, start:stop] / 2**11
         msg = pmt.dict_add(msg, pmt.intern(
             f"beam{chan_ind}"), pmt.to_pmt(data))
         self.message_port_pub(pmt.intern("out"), self.meta)
