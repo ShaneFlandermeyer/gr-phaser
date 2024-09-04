@@ -163,9 +163,8 @@ class blk(gr.sync_block):
         data = data[self.rx_offset_samples:].copy().astype(np.complex64)
         data = data.reshape((self.num_bursts, -1))
         start = self.burst_start_sample
-        if self.burst_stop_sample > 0 and self.burst_stop_sample < data.shape[1]:
-          stop = self.burst_stop_sample
-        else:
+        stop = self.burst_stop_sample
+        if stop < 0 or stop > data.shape[1]:
           stop = data.shape[1]
         data = data[:, start:stop] / 2**11
         msg = pmt.dict_add(msg, pmt.intern(
