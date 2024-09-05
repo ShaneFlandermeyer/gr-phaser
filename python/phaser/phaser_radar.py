@@ -243,7 +243,7 @@ class blk(gr.sync_block):
 
     # Configure TDD
     decimation = 2
-    frame_length_raw = decimation*num_burst_samps
+    frame_length_raw = decimation*num_burst_samps - 1
     self.init_tdd(startup_delay_ms=0, 
                   frame_length_raw=frame_length_raw, 
                   frame_length_ms=None,
