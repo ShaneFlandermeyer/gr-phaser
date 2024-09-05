@@ -42,19 +42,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [264, 80.0]
-    rotation: 0
-    state: enabled
-- name: rpi_ip
-  id: variable
-  parameters:
-    comment: ''
-    value: '"169.254.227.151"'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [336, 80.0]
+    coordinate: [376, 20.0]
     rotation: 0
     state: enabled
 - name: samp_rate
@@ -66,7 +54,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [168, 80.0]
+    coordinate: [184, 20.0]
     rotation: 0
     state: enabled
 - name: import_0
@@ -79,7 +67,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [168, 24.0]
+    coordinate: [288, 20.0]
     rotation: 0
     state: enabled
 - name: phaser_phaser_radar_0
@@ -97,9 +85,9 @@ blocks:
     gain_cal_file: ''
     maxoutbuf: '0'
     minoutbuf: '0'
-    num_bursts: '32'
+    num_bursts: '10'
     phase_cal_file: ''
-    phaser_chan_gain: '[64, 64, 64, 64, 64, 64, 64, 64]'
+    phaser_chan_gain: '[127]*8'
     phaser_chan_phase: '[0, 0, 0, 0, 0, 0, 0, 0]'
     phaser_output_freq: 10e9
     phaser_uri: ip:phaser.local
@@ -107,25 +95,25 @@ blocks:
     radar_mode: '''pulsed'''
     rx_enabled_channels: '[0, 1]'
     rx_gain: '20'
-    rx_offset_samples: '102'
+    rx_offset_samples: '101'
     sample_rate: samp_rate
     sdr_freq: 2.1e9
     sdr_uri: ip:pluto.local
     tx_cyclic_buffer: 'True'
     tx_enabled_channels: '[0, 1]'
-    tx_hardwaregain_chan0: '-3'
-    tx_hardwaregain_chan1: '-3'
+    tx_hardwaregain_chan0: '0'
+    tx_hardwaregain_chan1: '0'
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [448, 228.0]
+    coordinate: [544, 164.0]
     rotation: 0
     state: enabled
 - name: zeromq_pull_msg_source_0
   id: zeromq_pull_msg_source
   parameters:
-    address: f"tcp://{rpi_ip}:2001"
+    address: tcp://169.254.227.151:2001
     affinity: ''
     alias: ''
     bind: 'True'
@@ -137,13 +125,13 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [200, 280.0]
+    coordinate: [216, 196.0]
     rotation: 0
     state: enabled
 - name: zeromq_push_msg_sink_0
   id: zeromq_push_msg_sink
   parameters:
-    address: f"tcp://{rpi_ip}:3001
+    address: tcp://169.254.227.151:3001
     affinity: ''
     alias: ''
     bind: 'True'
@@ -153,7 +141,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [712, 280.0]
+    coordinate: [904, 212.0]
     rotation: 0
     state: enabled
 
@@ -163,4 +151,4 @@ connections:
 
 metadata:
   file_format: 1
-  grc_version: 3.10.9.2
+  grc_version: v3.10.11.0-1-gee27d6f3

@@ -105,7 +105,7 @@ class blk(gr.sync_block):
     self.chan_phase_key = pmt.intern("chan_phase")
     self.chan_gain_key = pmt.intern("chan_gain")
 
-    self.configure_hardware()
+    self.init_hardware()
 
     self.main_thread = gr.threading.Thread(target=self.run)
     self.main_thread.start()
@@ -160,6 +160,7 @@ class blk(gr.sync_block):
 
       self.phaser._gpios.gpio_burst = 0
       self.phaser._gpios.gpio_burst = 1
+      self.phaser._gpios.gpio_burst = 0
 
       msg = self.meta
       rx_data = self.sdr.rx()
@@ -187,7 +188,7 @@ class blk(gr.sync_block):
     self.sdr_pins.gpio_phaser_enable = False
     return True
 
-  def configure_hardware(self):
+  def init_hardware(self):
     self.sdr = adi.ad9361(uri=self.sdr_ip)
     self.phaser = adi.CN0566(uri=self.phaser_uri, sdr=self.sdr)
 
@@ -230,30 +231,85 @@ class blk(gr.sync_block):
     self.sdr_pins.gpio_tdd_ext_sync = True
 
     if self.radar_mode.lower() == 'fmcw':
-      self.configure_fmcw()
+      self.init_fmcw()
     else:
-      self.configure_pulsed()
+      self.init_pulsed()
 
-  def configure_pulsed(self) -> None:
+  def init_pulsed(self) -> None:
     num_burst_samps = round(self.pri * self.sample_rate)
     num_buffer_samps = num_burst_samps * self.num_bursts
-    # Decimation factor for frame_length_raw (from SDR object)
-    if (self.sample_rate <= 20e6):
-      dec = 4
-    else:
-      dec = 2
-
     self.sdr.rx_buffer_size = num_buffer_samps + self.rx_offset_samples
     self.phaser.frequency = int((self.phaser_output_freq + self.sdr_freq) / 4)
+
     # Configure TDD
+    decimation = 2
+    frame_length_raw = decimation*num_burst_samps
+    self.init_tdd(startup_delay_ms=0, 
+                  frame_length_raw=frame_length_raw, 
+                  frame_length_ms=None,
+                  burst_count=0)
+
+  def init_fmcw(self) -> None:
+    # Configure ADF4159 ramping PLL
+    vco_freq = self.phaser_output_freq + self.sdr_freq + self.fmcw_if_freq
+    num_steps = int(self.fmcw_sweep_duration * 1e6)  # One step per us
+    self.phaser.frequency = int(vco_freq / 4)
+    self.phaser.freq_dev_range = int(self.fmcw_sweep_bandwidth / 4)
+    self.phaser.freq_dev_step = int(self.phaser.freq_dev_range / num_steps)
+    self.phaser.freq_dev_time = int(self.fmcw_sweep_duration * 1e6)
+    self.phaser.dely_start_en = 0
+    self.phaser.ramp_delay_en = 0
+    self.phaser.trig_delay_en = 0
+    self.phaser.ramp_mode = self.fmcw_ramp_mode
+    self.phaser.sing_ful_tri = 0
+    self.phaser.tx_trig_en = 1
+    self.phaser.enable = 0
+
+    num_burst_samps = round(self.fmcw_sweep_duration * self.sample_rate)
+    num_buffer_samps = num_burst_samps * self.num_bursts
+    self.sdr.rx_buffer_size = num_buffer_samps + self.rx_offset_samples
+
+    self.init_tdd(startup_delay_ms=0, 
+                  frame_length_raw=None,
+                  frame_length_ms=self.fmcw_sweep_duration*1e3,
+                  burst_count=0)
+
+    # IF Carrier
+    N = self.sdr.rx_buffer_size
+    fc = int(self.fmcw_if_freq)
+    ts = 1 / float(self.sdr.sample_rate)
+    t = np.arange(0, N * ts, ts)
+    i = np.cos(2 * np.pi * t * fc)
+    q = np.sin(2 * np.pi * t * fc)
+    iq = 2**14 * (i + 1j*q)
+
+    self.sdr._ctx.set_timeout(30000)
+    self.sdr._rx_init_channels()
+    self.sdr.tx([iq, iq])
+    self.started = True
+
+  def init_tdd(self, 
+               startup_delay_ms: float, 
+               frame_length_raw: int = None,
+               frame_length_ms: float = None,
+               burst_count: int = 0
+               ) -> None:
     tddn = adi.tddn(self.sdr_ip)
     tddn.enable = False
 
-    tddn.startup_delay_ms = 0
-    tddn.frame_length_raw = num_burst_samps * dec - 1
-    tddn.burst_count = 0
+    tddn.startup_delay_ms = startup_delay_ms
+    
+    if frame_length_raw is not None and frame_length_ms is None:
+        tddn.frame_length_raw = frame_length_raw
+    elif frame_length_ms is not None and frame_length_raw is None:
+        tddn.frame_length_ms = frame_length_ms
+    else:
+        raise ValueError("Frame length specified in two different units")
+    
+    tddn.burst_count = burst_count
     tddn.internal_sync_period_ms = 0
 
+    # Burst DMA SYNC
     tddn.channel[0].on_raw = 0
     tddn.channel[0].off_raw = 10
     tddn.channel[0].polarity = 0
@@ -275,78 +331,6 @@ class blk(gr.sync_block):
     tddn.sync_internal = False  # enable the internal sync trigger
     tddn.sync_reset = False  # reset the internal counter when receiving a sync event
     tddn.enable = True  # enable TDD engine
-
-  def configure_fmcw(self) -> None:
-    # Configure ADF4159 ramping PLL
-    vco_freq = self.phaser_output_freq + self.sdr_freq + self.fmcw_if_freq
-    num_steps = int(self.fmcw_sweep_duration * 1e6)  # One step per us
-    self.phaser.frequency = int(vco_freq / 4)
-    self.phaser.freq_dev_range = int(self.fmcw_sweep_bandwidth / 4)
-    self.phaser.freq_dev_step = int(self.phaser.freq_dev_range / num_steps)
-    self.phaser.freq_dev_time = int(self.fmcw_sweep_duration * 1e6)
-    self.phaser.dely_start_en = 0
-    self.phaser.ramp_delay_en = 0
-    self.phaser.trig_delay_en = 0
-    self.phaser.ramp_mode = self.fmcw_ramp_mode
-    self.phaser.sing_ful_tri = 0
-    self.phaser.tx_trig_en = 1
-    self.phaser.enable = 0
-
-    num_burst_samps = round(self.fmcw_sweep_duration * self.sample_rate)
-    num_buffer_samps = num_burst_samps * self.num_bursts
-    # Decimation factor for frame_length_raw (from SDR object)
-    if (self.sample_rate <= 20e6):
-      dec = 4
-    else:
-      dec = 2
-
-    self.sdr.rx_buffer_size = num_buffer_samps + self.rx_offset_samples
-
-
-    # Configure TDD
-    tddn = adi.tddn(self.sdr_ip)
-    tddn.enable = False
-
-    tddn.startup_delay_ms = 0
-    tddn.frame_length_raw = num_burst_samps * dec - 1
-    tddn.burst_count = self.num_bursts
-    tddn.internal_sync_period_ms = 0
-
-    tddn.channel[0].on_raw = 0
-    tddn.channel[0].off_raw = 10
-    tddn.channel[0].polarity = 0
-    tddn.channel[0].enable = 1
-
-    # RX DMA SYNC
-    tddn.channel[1].on_raw = 0
-    tddn.channel[1].off_raw = 10
-    tddn.channel[1].polarity = 0
-    tddn.channel[1].enable = 1
-
-    # TX DMA SYNC
-    tddn.channel[2].on_raw = 0
-    tddn.channel[2].off_raw = 10
-    tddn.channel[2].polarity = 0
-    tddn.channel[2].enable = 1
-
-    tddn.sync_external = True  # enable external sync trigger
-    tddn.sync_internal = True  # enable the internal sync trigger
-    tddn.sync_reset = False  # reset the internal counter when receiving a sync event
-    tddn.enable = True  # enable TDD engine
-
-    # IF Carrier
-    N = self.sdr.rx_buffer_size
-    fc = int(self.fmcw_if_freq)
-    ts = 1 / float(self.sdr.sample_rate)
-    t = np.arange(0, N * ts, ts)
-    i = np.cos(2 * np.pi * t * fc)
-    q = np.sin(2 * np.pi * t * fc)
-    iq = 2**14 * (i + 1j*q)
-
-    self.sdr._ctx.set_timeout(30000)
-    self.sdr._rx_init_channels()
-    self.sdr.tx([iq, iq])
-    self.started = True
 
   def update_steering_angle(self, angle) -> None:
     c = scipy.constants.c
