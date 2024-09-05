@@ -195,6 +195,7 @@ class blk(gr.sync_block):
     self.sdr.sample_rate = int(self.sample_rate)
     self.sdr.rx_lo = int(self.sdr_freq)
     self.sdr.rx_enabled_channels = self.rx_enabled_channels
+    self.sdr._rxadc.set_kernel_buffers_count(1) # No stale buffers to flush
     self.sdr.gain_control_mode_chan0 = 'manual'  # manual or slow_attack
     self.sdr.gain_control_mode_chan1 = 'manual'  # manual or slow_attack
     # Between -3 and 70
