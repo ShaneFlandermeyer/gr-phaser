@@ -12,7 +12,7 @@ import numpy as np
 from gnuradio import gr
 import pmt
 import adi
-from typing import List
+from typing import List, Optional
 import scipy
 
 
@@ -100,10 +100,18 @@ class blk(gr.sync_block):
     self.fmcw_sweep_bandwidth = fmcw_sweep_bandwidth
     self.fmcw_if_freq = fmcw_if_freq
     self.fmcw_ramp_mode = fmcw_ramp_mode
+    # Derived parameters
+    self.num_beams = len(self.rx_enabled_channels)
+    self.prf = 1 / self.pri
+    self.meta = pmt.dict_add(self.meta, pmt.intern("phaser:num_beams"),
+                             pmt.from_long(self.num_beams))
+    self.meta = pmt.dict_add(self.meta, pmt.intern("phaser:prf"),
+                             pmt.from_double(self.prf))
 
-    self.angle_key = pmt.intern("angle")
-    self.chan_phase_key = pmt.intern("chan_phase")
-    self.chan_gain_key = pmt.intern("chan_gain")
+    # Keys for metadata that can change during operation
+    self.angle_key = pmt.intern("phaser:steering_angle")
+    self.chan_phase_key = pmt.intern("phaser:phaser_chan_phase")
+    self.chan_gain_key = pmt.intern("phaser:phaser_chan_gain")
 
     self.init_hardware()
 
@@ -125,7 +133,7 @@ class blk(gr.sync_block):
     if data is not None:
       if self.radar_mode.lower() == 'pulsed':
         # Update tx data
-        iq = np.asarray(pmt.to_python(data)) * 2**14
+        iq = np.asarray(pmt.c32vector_elements(data)) * 2**14
         self.sdr.tx_destroy_buffer()
         self.sdr.tx([iq, iq])
         self.started = True
@@ -133,15 +141,19 @@ class blk(gr.sync_block):
         self.logger.warn(
             "Invalid message input: FMCW mode does not support arbitrary waveforms")
 
+    # Control updates
     if meta is not None:
+      
       if pmt.dict_has_key(meta, self.angle_key):
-        angle = pmt.to_python(pmt.dict_ref(meta, self.angle_key, pmt.PMT_NIL))
+        angle = pmt.to_double(pmt.dict_ref(meta, self.angle_key, pmt.PMT_NIL))
         self.update_steering_angle(angle)
+        
       if pmt.dict_has_key(meta, self.chan_phase_key):
         chan_phase = pmt.to_python(pmt.dict_ref(
             meta, self.chan_phase_key, pmt.PMT_NIL))
         for i in range(self.phaser.num_elements):
           self.phaser.set_chan_phase(i, chan_phase[i])
+          
       if pmt.dict_has_key(meta, self.chan_gain_key):
         chan_gain = pmt.to_python(pmt.dict_ref(
             meta, self.chan_gain_key, pmt.PMT_NIL))
@@ -165,8 +177,7 @@ class blk(gr.sync_block):
       data = np.asarray(self.sdr.rx())[:, self.rx_offset_samples:]
 
       # Extract desired portion from each burst
-      num_beams = len(self.rx_enabled_channels)
-      data = data.reshape((num_beams, self.num_bursts, -1))
+      data = data.reshape((self.num_beams, self.num_bursts, -1))
       start = self.burst_start_sample
       stop = self.burst_stop_sample
       if start is None:
@@ -290,9 +301,9 @@ class blk(gr.sync_block):
 
   def init_tdd(self,
                startup_delay_ms: float,
-               frame_length_raw: int = None,
-               frame_length_ms: float = None,
-               burst_count: int = 0
+               frame_length_raw: Optional[int] = None,
+               frame_length_ms: Optional[float] = None,
+               burst_count: Optional[int] = 0
                ) -> None:
     tddn = adi.tddn(self.sdr_ip)
     tddn.enable = False

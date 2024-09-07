@@ -6,7 +6,7 @@
 #
 # GNU Radio Python Flow Graph
 # Title: Not titled yet
-# GNU Radio version: v3.10.11.0-1-gee27d6f3
+# GNU Radio version: 3.10.9.2
 
 from gnuradio import gr
 from gnuradio.filter import firdes
@@ -19,7 +19,6 @@ from gnuradio import eng_notation
 from gnuradio import zeromq
 from gnuradio.phaser import phaser_radar
 import numpy as np
-import threading
 
 
 
@@ -28,7 +27,6 @@ class phaser_zmq_rpi_pulsed(gr.top_block):
 
     def __init__(self):
         gr.top_block.__init__(self, "Not titled yet", catch_exceptions=True)
-        self.flowgraph_started = threading.Event()
 
         ##################################################
         # Variables
@@ -61,7 +59,7 @@ class phaser_zmq_rpi_pulsed(gr.top_block):
           [127]*8,
           '',
           '',
-          'pulsed',
+          'fmcw',
           64,
           1/20e3,
           500e-6,
@@ -106,7 +104,6 @@ def main(top_block_cls=phaser_zmq_rpi_pulsed, options=None):
     signal.signal(signal.SIGTERM, sig_handler)
 
     tb.start()
-    tb.flowgraph_started.set()
 
     try:
         input('Press Enter to quit: ')

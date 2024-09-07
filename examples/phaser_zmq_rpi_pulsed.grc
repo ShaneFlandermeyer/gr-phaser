@@ -92,7 +92,7 @@ blocks:
     phaser_output_freq: 10e9
     phaser_uri: ip:phaser.local
     pri: 1/20e3
-    radar_mode: '''pulsed'''
+    radar_mode: '''fmcw'''
     rx_enabled_channels: '[0, 1]'
     rx_gain: '10'
     rx_offset_samples: '101'
@@ -123,7 +123,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [840, 212.0]
+    coordinate: [832, 216.0]
     rotation: 0
     state: enabled
 - name: zeromq_sub_msg_source_0
@@ -141,7 +141,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [264, 212.0]
+    coordinate: [280, 216.0]
     rotation: 0
     state: enabled
 
@@ -151,4 +151,4 @@ connections:
 
 metadata:
   file_format: 1
-  grc_version: v3.10.11.0-1-gee27d6f3
+  grc_version: 3.10.9.2
