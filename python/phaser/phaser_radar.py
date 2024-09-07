@@ -162,21 +162,22 @@ class blk(gr.sync_block):
       self.phaser._gpios.gpio_burst = 1
       self.phaser._gpios.gpio_burst = 0
 
-      msg = self.meta
-      rx_data = self.sdr.rx()
-      for i, data in enumerate(rx_data):
-        chan_ind = self.rx_enabled_channels[i]
-
-        data = data[self.rx_offset_samples:].copy().astype(np.complex64)
-        data = data.reshape((self.num_bursts, -1))
-        start = self.burst_start_sample
-        stop = self.burst_stop_sample
-        if stop < 0 or stop > data.shape[1]:
-          stop = data.shape[1]
-        data = data[:, start:stop] / 2**11
-        msg = pmt.dict_add(msg, pmt.intern(
-            f"phaser:beam{chan_ind}"), pmt.to_pmt(data))
-      self.message_port_pub(pmt.intern("out"), msg)
+      data = np.array(self.sdr.rx()).astype(np.complex64) / 2**11
+      data = data[:, self.rx_offset_samples:]
+      
+      # Extract desired range swath
+      num_beams = len(self.rx_enabled_channels)
+      data = data.reshape((num_beams, self.num_bursts, -1))
+      start = self.burst_start_sample
+      stop = self.burst_stop_sample
+      if start is None:
+          start = 0
+      if stop is None:
+          stop = data.shape[-1]
+      data = data[:, :, start:stop]
+      
+      data = pmt.init_c32vector(data.size, data.ravel())
+      self.message_port_pub(pmt.intern("out"), pmt.cons(self.meta, data))
 
   def stop(self):
     self.stopped = True
