@@ -1,17 +1,16 @@
 id: phaser_sum_beams
-label: Sum Beams
+label: sum_beams
 category: "[phaser]"
 
 templates:
   imports: from gnuradio import phaser
-  make: phaser.sum_beams(${beam_key_pattern})
+  make: phaser.sum_beams(${num_beams_key})
 
-#  Make one 'parameters' list entry for every parameter you want settable from
 parameters:
-  - id: beam_key_pattern
-    label: Beam Key Pattern
+  - id: num_beams_key
+    label: Num. Beams key
     dtype: string
-    default: "phaser:beam[0-9]+"
+    default: "phaser:num_beams"
 
 inputs:
   - id: in

@@ -11,7 +11,7 @@ options:
     gen_linking: dynamic
     generate_options: qt_gui
     hier_block_src_path: '.:'
-    id: phaser_zmq_host
+    id: phaser_zmq_host_pulsed
     max_nouts: '0'
     output_language: python
     placement: (0,0)
@@ -111,10 +111,10 @@ blocks:
   parameters:
     affinity: ''
     alias: ''
-    beam_key_pattern: phaser:beam[0-9]+
     comment: ''
     maxoutbuf: '0'
     minoutbuf: '0'
+    num_beams_key: phaser:num_beams
   states:
     bus_sink: false
     bus_source: false

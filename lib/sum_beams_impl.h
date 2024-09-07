@@ -9,7 +9,6 @@
 #define INCLUDED_PHASER_SUM_BEAMS_IMPL_H
 
 #include <gnuradio/phaser/sum_beams.h>
-#include <regex>
 
 namespace gr {
 namespace phaser {
@@ -17,14 +16,13 @@ namespace phaser {
 class sum_beams_impl : public sum_beams
 {
 private:
-    std::string beam_key_pattern;
-    std::regex beam_key_regex;
-
+    pmt::pmt_t num_beams_key;
+    size_t num_beams;
 
     void handle_msg(pmt::pmt_t msg);
 
 public:
-    sum_beams_impl(std::string beam_key_pattern);
+    sum_beams_impl(std::string num_beams_key);
     ~sum_beams_impl();
 };
 

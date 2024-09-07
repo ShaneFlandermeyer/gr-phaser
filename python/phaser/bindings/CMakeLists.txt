@@ -23,7 +23,6 @@ include(GrPybind)
 ########################################################################
 # Python Bindings
 ########################################################################
-
 list(APPEND phaser_python_files
     sum_beams_python.cc python_bindings.cc)
 

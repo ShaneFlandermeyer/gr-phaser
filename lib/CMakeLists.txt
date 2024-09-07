@@ -10,9 +10,8 @@
 # Setup library
 ########################################################################
 include(GrPlatform) #define LIB_SUFFIX
-
 list(APPEND phaser_sources
-    sum_beams_impl.cc)
+    sum_beams_impl.cc )
 
 set(phaser_sources
     "${phaser_sources}"

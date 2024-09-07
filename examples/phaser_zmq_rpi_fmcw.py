@@ -31,7 +31,7 @@ class phaser_zmq_rpi_fmcw(gr.top_block):
         ##################################################
         # Variables
         ##################################################
-        self.samp_rate = samp_rate = 5e6
+        self.samp_rate = samp_rate = 2e6
         self.angle = angle = 0
 
         ##################################################

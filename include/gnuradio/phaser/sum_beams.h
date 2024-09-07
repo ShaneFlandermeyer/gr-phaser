@@ -32,7 +32,7 @@ public:
      * class. phaser::sum_beams::make is the public interface for
      * creating new instances.
      */
-    static sptr make(std::string beam_key_pattern);
+    static sptr make(std::string num_beams_key);
 };
 
 } // namespace phaser

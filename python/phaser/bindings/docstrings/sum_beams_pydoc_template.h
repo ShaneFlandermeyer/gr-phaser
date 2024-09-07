@@ -19,7 +19,7 @@
  static const char *__doc_gr_phaser_sum_beams = R"doc()doc";
 
 
- static const char *__doc_gr_phaser_sum_beams_sum_beams_0 = R"doc()doc";
+ static const char *__doc_gr_phaser_sum_beams_sum_beams = R"doc()doc";
 
 
  static const char *__doc_gr_phaser_sum_beams_make = R"doc()doc";
