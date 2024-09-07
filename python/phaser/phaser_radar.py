@@ -63,7 +63,7 @@ class blk(gr.sync_block):
     self.meta = pmt.make_dict()
     for key, val in locals().items():
       if key == "self":
-          continue
+        continue
       key = f"phaser:{key}"
       self.meta = pmt.dict_add(self.meta, pmt.intern(key), pmt.to_pmt(val))
 
@@ -162,21 +162,20 @@ class blk(gr.sync_block):
       self.phaser._gpios.gpio_burst = 1
       self.phaser._gpios.gpio_burst = 0
 
-      data = np.array(self.sdr.rx()).astype(np.complex64) / 2**11
-      data = data[:, self.rx_offset_samples:]
-      
-      # Extract desired range swath
+      data = np.asarray(self.sdr.rx())[:, self.rx_offset_samples:]
+
+      # Extract desired portion from each burst
       num_beams = len(self.rx_enabled_channels)
       data = data.reshape((num_beams, self.num_bursts, -1))
       start = self.burst_start_sample
       stop = self.burst_stop_sample
       if start is None:
-          start = 0
+        start = 0
       if stop is None:
-          stop = data.shape[-1]
+        stop = data.shape[-1]
       data = data[:, :, start:stop]
-      
-      data = pmt.init_c32vector(data.size, data.ravel())
+
+      data = pmt.init_c32vector(data.size, data.ravel() / 2**11)
       self.message_port_pub(pmt.intern("out"), pmt.cons(self.meta, data))
 
   def stop(self):
@@ -197,7 +196,7 @@ class blk(gr.sync_block):
     self.sdr.sample_rate = int(self.sample_rate)
     self.sdr.rx_lo = int(self.sdr_freq)
     self.sdr.rx_enabled_channels = self.rx_enabled_channels
-    self.sdr._rxadc.set_kernel_buffers_count(1) # No stale buffers to flush
+    self.sdr._rxadc.set_kernel_buffers_count(1)  # No stale buffers to flush
     self.sdr.gain_control_mode_chan0 = 'manual'  # manual or slow_attack
     self.sdr.gain_control_mode_chan1 = 'manual'  # manual or slow_attack
     # Between -3 and 70
@@ -214,9 +213,9 @@ class blk(gr.sync_block):
     # Configure phaser
     self.phaser.configure(device_mode='rx')
     if self.gain_cal_file:
-        self.phaser.load_gain_cal()
+      self.phaser.load_gain_cal()
     if self.phase_cal_file:
-        self.phaser.load_channel_cal()
+      self.phaser.load_channel_cal()
     for i in range(self.phaser.num_elements):
       self.phaser.set_chan_phase(i, self.phaser_chan_phase[i])
       self.phaser.set_chan_gain(i, self.phaser_chan_gain[i])
@@ -245,8 +244,8 @@ class blk(gr.sync_block):
     # Configure TDD
     decimation = 2
     frame_length_raw = decimation*num_burst_samps - 1
-    self.init_tdd(startup_delay_ms=0, 
-                  frame_length_raw=frame_length_raw, 
+    self.init_tdd(startup_delay_ms=0,
+                  frame_length_raw=frame_length_raw,
                   frame_length_ms=None,
                   burst_count=0)
 
@@ -270,7 +269,7 @@ class blk(gr.sync_block):
     num_buffer_samps = num_burst_samps * self.num_bursts
     self.sdr.rx_buffer_size = num_buffer_samps + self.rx_offset_samples
 
-    self.init_tdd(startup_delay_ms=0, 
+    self.init_tdd(startup_delay_ms=0,
                   frame_length_raw=None,
                   frame_length_ms=self.fmcw_sweep_duration*1e3,
                   burst_count=0)
@@ -289,8 +288,8 @@ class blk(gr.sync_block):
     self.sdr.tx([iq, iq])
     self.started = True
 
-  def init_tdd(self, 
-               startup_delay_ms: float, 
+  def init_tdd(self,
+               startup_delay_ms: float,
                frame_length_raw: int = None,
                frame_length_ms: float = None,
                burst_count: int = 0
@@ -299,14 +298,14 @@ class blk(gr.sync_block):
     tddn.enable = False
 
     tddn.startup_delay_ms = startup_delay_ms
-    
+
     if frame_length_raw is not None and frame_length_ms is None:
-        tddn.frame_length_raw = frame_length_raw
+      tddn.frame_length_raw = frame_length_raw
     elif frame_length_ms is not None and frame_length_raw is None:
-        tddn.frame_length_ms = frame_length_ms
+      tddn.frame_length_ms = frame_length_ms
     else:
-        raise ValueError("Frame length specified in two different units")
-    
+      raise ValueError("Frame length specified in two different units")
+
     tddn.burst_count = burst_count
     tddn.internal_sync_period_ms = 0
 
