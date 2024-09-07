@@ -107,7 +107,23 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [544, 164.0]
+    coordinate: [424, 236.0]
+    rotation: 0
+    state: enabled
+- name: phaser_sum_beams_0
+  id: phaser_sum_beams
+  parameters:
+    affinity: ''
+    alias: ''
+    comment: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_beams_key: phaser:num_beams
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [672, 296.0]
     rotation: 0
     state: enabled
 - name: qtgui_time_sink_x_0
@@ -204,12 +220,13 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [824, 216.0]
+    coordinate: [928, 288.0]
     rotation: 0
     state: enabled
 
 connections:
-- [phaser_phaser_radar_0, out, qtgui_time_sink_x_0, in]
+- [phaser_phaser_radar_0, out, phaser_sum_beams_0, in]
+- [phaser_sum_beams_0, out, qtgui_time_sink_x_0, in]
 
 metadata:
   file_format: 1

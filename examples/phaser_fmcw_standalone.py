@@ -19,6 +19,7 @@ from PyQt5 import Qt
 from argparse import ArgumentParser
 from gnuradio.eng_arg import eng_float, intx
 from gnuradio import eng_notation
+from gnuradio import phaser
 from gnuradio.phaser import phaser_radar
 import numpy as np
 import sip
@@ -118,6 +119,7 @@ class phaser_fmcw_standalone(gr.top_block, Qt.QWidget):
 
         self._qtgui_time_sink_x_0_win = sip.wrapinstance(self.qtgui_time_sink_x_0.qwidget(), Qt.QWidget)
         self.top_layout.addWidget(self._qtgui_time_sink_x_0_win)
+        self.phaser_sum_beams_0 = phaser.sum_beams('phaser:num_beams')
         self.phaser_phaser_radar_0 = phaser_radar.blk(
           'ip:pluto.local',
           samp_rate,
@@ -150,7 +152,8 @@ class phaser_fmcw_standalone(gr.top_block, Qt.QWidget):
         ##################################################
         # Connections
         ##################################################
-        self.msg_connect((self.phaser_phaser_radar_0, 'out'), (self.qtgui_time_sink_x_0, 'in'))
+        self.msg_connect((self.phaser_phaser_radar_0, 'out'), (self.phaser_sum_beams_0, 'in'))
+        self.msg_connect((self.phaser_sum_beams_0, 'out'), (self.qtgui_time_sink_x_0, 'in'))
 
 
     def closeEvent(self, event):
