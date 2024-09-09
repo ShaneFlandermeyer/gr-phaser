@@ -74,7 +74,7 @@ parameters:
   - id: burst_start_sample
     label: Burst Start Sample
     dtype: int
-    default: 0
+    default: -1
     category: SDR
     hide: part
   - id: burst_stop_sample

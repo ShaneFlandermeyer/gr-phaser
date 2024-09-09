@@ -78,8 +78,14 @@ class blk(gr.sync_block):
     self.rx_enabled_channels = rx_enabled_channels
     self.rx_gain = rx_gain
     self.rx_offset_samples = rx_offset_samples
-    self.burst_start_sample = burst_start_sample
-    self.burst_stop_sample = burst_stop_sample
+    if burst_start_sample == -1:
+      self.burst_start_sample = None
+    else:
+      self.burst_start_sample = burst_start_sample
+    if burst_stop_sample == -1:
+      self.burst_stop_sample = None
+    else:
+      self.burst_stop_sample = burst_stop_sample
     # Tx params
     self.tx_enabled_channels = tx_enabled_channels
     self.tx_hardwaregain_chan0 = tx_hardwaregain_chan0
@@ -143,17 +149,17 @@ class blk(gr.sync_block):
 
     # Control updates
     if meta is not None:
-      
+
       if pmt.dict_has_key(meta, self.angle_key):
         angle = pmt.to_double(pmt.dict_ref(meta, self.angle_key, pmt.PMT_NIL))
         self.update_steering_angle(angle)
-        
+
       if pmt.dict_has_key(meta, self.chan_phase_key):
         chan_phase = pmt.to_python(pmt.dict_ref(
             meta, self.chan_phase_key, pmt.PMT_NIL))
         for i in range(self.phaser.num_elements):
           self.phaser.set_chan_phase(i, chan_phase[i])
-          
+
       if pmt.dict_has_key(meta, self.chan_gain_key):
         chan_gain = pmt.to_python(pmt.dict_ref(
             meta, self.chan_gain_key, pmt.PMT_NIL))
@@ -176,15 +182,15 @@ class blk(gr.sync_block):
 
       data = np.asarray(self.sdr.rx())[:, self.rx_offset_samples:]
 
-      # Extract desired portion from each burst
-      data = data.reshape((self.num_beams, self.num_bursts, -1))
-      start = self.burst_start_sample
-      stop = self.burst_stop_sample
-      if start is None:
-        start = 0
-      if stop is None:
-        stop = data.shape[-1]
-      data = data[:, :, start:stop]
+      # Extract desired range swath from each burst
+      start, stop = self.burst_start_sample, self.burst_stop_sample
+      if start is not None or stop is not None:
+        if start is None:
+          start = 0
+        if stop is None:
+          stop = data.shape[-1]
+        data = data.reshape((self.num_beams, self.num_bursts, -1))
+        data = data[:, :, start:stop]
 
       data = pmt.init_c32vector(data.size, data.ravel() / 2**11)
       self.message_port_pub(pmt.intern("out"), pmt.cons(self.meta, data))
@@ -247,8 +253,8 @@ class blk(gr.sync_block):
       self.init_pulsed()
 
   def init_pulsed(self) -> None:
-    num_burst_samps = round(self.pri * self.sample_rate)
-    num_buffer_samps = num_burst_samps * self.num_bursts
+    num_burst_samps = int(self.pri * self.sample_rate)
+    num_buffer_samps = int(self.pri * self.sample_rate * self.num_bursts)
     self.sdr.rx_buffer_size = num_buffer_samps + self.rx_offset_samples
     self.phaser.frequency = int((self.phaser_output_freq + self.sdr_freq) / 4)
 
