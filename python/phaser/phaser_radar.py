@@ -282,13 +282,16 @@ class blk(gr.sync_block):
     self.phaser.tx_trig_en = 1
     self.phaser.enable = 0
 
-    num_burst_samps = round(self.fmcw_sweep_duration * self.sample_rate)
+    num_burst_samps = int(self.fmcw_sweep_duration * self.sample_rate)
     num_buffer_samps = num_burst_samps * self.num_bursts
     self.sdr.rx_buffer_size = num_buffer_samps + self.rx_offset_samples
 
+    # Configure TDD
+    decimation = 2
+    frame_length_raw = decimation*num_burst_samps - 1
     self.init_tdd(startup_delay_ms=0,
-                  frame_length_raw=None,
-                  frame_length_ms=self.fmcw_sweep_duration*1e3,
+                  frame_length_raw=frame_length_raw,
+                  frame_length_ms=None,
                   burst_count=0)
 
     # IF Carrier
