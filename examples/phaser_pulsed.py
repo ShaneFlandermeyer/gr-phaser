@@ -6,7 +6,7 @@
 #
 # GNU Radio Python Flow Graph
 # Title: Not titled yet
-# GNU Radio version: 3.10.9.2
+# GNU Radio version: v3.10.11.0-1-gee27d6f3
 
 from PyQt5 import Qt
 from gnuradio import qtgui
@@ -20,13 +20,15 @@ from argparse import ArgumentParser
 from gnuradio.eng_arg import eng_float, intx
 from gnuradio import eng_notation
 from gnuradio import phaser
-from gnuradio import zeromq
+from gnuradio import plasma
+from gnuradio.phaser import phaser_radar
 import numpy as np
 import sip
+import threading
 
 
 
-class phaser_zmq_host_fmcw(gr.top_block, Qt.QWidget):
+class phaser_pulsed(gr.top_block, Qt.QWidget):
 
     def __init__(self):
         gr.top_block.__init__(self, "Not titled yet", catch_exceptions=True)
@@ -49,7 +51,7 @@ class phaser_zmq_host_fmcw(gr.top_block, Qt.QWidget):
         self.top_grid_layout = Qt.QGridLayout()
         self.top_layout.addLayout(self.top_grid_layout)
 
-        self.settings = Qt.QSettings("GNU Radio", "phaser_zmq_host_fmcw")
+        self.settings = Qt.QSettings("gnuradio/flowgraphs", "phaser_pulsed")
 
         try:
             geometry = self.settings.value("geometry")
@@ -57,19 +59,18 @@ class phaser_zmq_host_fmcw(gr.top_block, Qt.QWidget):
                 self.restoreGeometry(geometry)
         except BaseException as exc:
             print(f"Qt GUI: Could not restore geometry: {str(exc)}", file=sys.stderr)
+        self.flowgraph_started = threading.Event()
 
         ##################################################
         # Variables
         ##################################################
-        self.samp_rate = samp_rate = 2e6
-        self.rpi_ip = rpi_ip = "169.254.227.151"
-        self.center_freq = center_freq = 10e9
+        self.samp_rate = samp_rate = 30e6
+        self.bandwidth = bandwidth = 2/3*samp_rate
 
         ##################################################
         # Blocks
         ##################################################
 
-        self.zeromq_sub_msg_source_0 = zeromq.sub_msg_source(f"tcp://{rpi_ip}:3001", 100, False)
         self.qtgui_time_sink_x_0 = qtgui.time_sink_c(
             1024, #size
             samp_rate, #samp_rate
@@ -121,18 +122,48 @@ class phaser_zmq_host_fmcw(gr.top_block, Qt.QWidget):
 
         self._qtgui_time_sink_x_0_win = sip.wrapinstance(self.qtgui_time_sink_x_0.qwidget(), Qt.QWidget)
         self.top_layout.addWidget(self._qtgui_time_sink_x_0_win)
+        self.plasma_lfm_source_0 = plasma.lfm_source(bandwidth, -bandwidth/2, 20e-6, samp_rate, 0)
+        self.plasma_lfm_source_0.init_meta_dict('radar:bandwidth', 'radar:start_freq', 'radar:duration', 'core:sample_rate', 'core:label', 'radar:prf')
         self.phaser_sum_beams_0 = phaser.sum_beams('phaser:num_beams')
+        self.phaser_phaser_radar_0 = phaser_radar.blk(
+          'ip:pluto.local',
+          samp_rate,
+          2.1e9,
+          [0, 1],
+          0,
+          102,
+          0,
+          (-1),
+          [0, 1],
+          -80,
+          0,
+          True,
+          'ip:phaser.local',
+          10e9,
+          [0, 0, 0, 0, 0, 0, 0, 0],
+          [127]*8,
+          '',
+          '',
+          'pulsed',
+          5,
+          1/10e3,
+          500e-6,
+          100e3,
+          500e6,
+          'single_sawtooth_burst',
+        )
 
 
         ##################################################
         # Connections
         ##################################################
+        self.msg_connect((self.phaser_phaser_radar_0, 'out'), (self.phaser_sum_beams_0, 'in'))
         self.msg_connect((self.phaser_sum_beams_0, 'out'), (self.qtgui_time_sink_x_0, 'in'))
-        self.msg_connect((self.zeromq_sub_msg_source_0, 'out'), (self.phaser_sum_beams_0, 'in'))
+        self.msg_connect((self.plasma_lfm_source_0, 'out'), (self.phaser_phaser_radar_0, 'in'))
 
 
     def closeEvent(self, event):
-        self.settings = Qt.QSettings("GNU Radio", "phaser_zmq_host_fmcw")
+        self.settings = Qt.QSettings("gnuradio/flowgraphs", "phaser_pulsed")
         self.settings.setValue("geometry", self.saveGeometry())
         self.stop()
         self.wait()
@@ -144,30 +175,26 @@ class phaser_zmq_host_fmcw(gr.top_block, Qt.QWidget):
 
     def set_samp_rate(self, samp_rate):
         self.samp_rate = samp_rate
+        self.set_bandwidth(2/3*self.samp_rate)
         self.qtgui_time_sink_x_0.set_samp_rate(self.samp_rate)
 
-    def get_rpi_ip(self):
-        return self.rpi_ip
+    def get_bandwidth(self):
+        return self.bandwidth
 
-    def set_rpi_ip(self, rpi_ip):
-        self.rpi_ip = rpi_ip
-
-    def get_center_freq(self):
-        return self.center_freq
-
-    def set_center_freq(self, center_freq):
-        self.center_freq = center_freq
+    def set_bandwidth(self, bandwidth):
+        self.bandwidth = bandwidth
 
 
 
 
-def main(top_block_cls=phaser_zmq_host_fmcw, options=None):
+def main(top_block_cls=phaser_pulsed, options=None):
 
     qapp = Qt.QApplication(sys.argv)
 
     tb = top_block_cls()
 
     tb.start()
+    tb.flowgraph_started.set()
 
     tb.show()
 

@@ -6,7 +6,7 @@
 #
 # GNU Radio Python Flow Graph
 # Title: Not titled yet
-# GNU Radio version: 3.10.9.2
+# GNU Radio version: v3.10.11.0-1-gee27d6f3
 
 from PyQt5 import Qt
 from gnuradio import qtgui
@@ -23,10 +23,11 @@ from gnuradio import phaser
 from gnuradio.phaser import phaser_radar
 import numpy as np
 import sip
+import threading
 
 
 
-class phaser_fmcw_standalone(gr.top_block, Qt.QWidget):
+class phaser_fmcw(gr.top_block, Qt.QWidget):
 
     def __init__(self):
         gr.top_block.__init__(self, "Not titled yet", catch_exceptions=True)
@@ -49,7 +50,7 @@ class phaser_fmcw_standalone(gr.top_block, Qt.QWidget):
         self.top_grid_layout = Qt.QGridLayout()
         self.top_layout.addLayout(self.top_grid_layout)
 
-        self.settings = Qt.QSettings("GNU Radio", "phaser_fmcw_standalone")
+        self.settings = Qt.QSettings("gnuradio/flowgraphs", "phaser_fmcw")
 
         try:
             geometry = self.settings.value("geometry")
@@ -57,12 +58,12 @@ class phaser_fmcw_standalone(gr.top_block, Qt.QWidget):
                 self.restoreGeometry(geometry)
         except BaseException as exc:
             print(f"Qt GUI: Could not restore geometry: {str(exc)}", file=sys.stderr)
+        self.flowgraph_started = threading.Event()
 
         ##################################################
         # Variables
         ##################################################
-        self.samp_rate = samp_rate = 2e6
-        self.angle = angle = 0
+        self.samp_rate = samp_rate = 5e6
 
         ##################################################
         # Blocks
@@ -125,12 +126,12 @@ class phaser_fmcw_standalone(gr.top_block, Qt.QWidget):
           samp_rate,
           2.1e9,
           [0, 1],
-          20,
           0,
+          102,
           0,
           (-1),
           [0, 1],
-          0,
+          -80,
           0,
           True,
           'ip:phaser.local',
@@ -139,7 +140,7 @@ class phaser_fmcw_standalone(gr.top_block, Qt.QWidget):
           [127]*8,
           '',
           '',
-          'fmcw',
+          'pulsed',
           5,
           1/10e3,
           500e-6,
@@ -157,7 +158,7 @@ class phaser_fmcw_standalone(gr.top_block, Qt.QWidget):
 
 
     def closeEvent(self, event):
-        self.settings = Qt.QSettings("GNU Radio", "phaser_fmcw_standalone")
+        self.settings = Qt.QSettings("gnuradio/flowgraphs", "phaser_fmcw")
         self.settings.setValue("geometry", self.saveGeometry())
         self.stop()
         self.wait()
@@ -171,22 +172,17 @@ class phaser_fmcw_standalone(gr.top_block, Qt.QWidget):
         self.samp_rate = samp_rate
         self.qtgui_time_sink_x_0.set_samp_rate(self.samp_rate)
 
-    def get_angle(self):
-        return self.angle
-
-    def set_angle(self, angle):
-        self.angle = angle
 
 
 
-
-def main(top_block_cls=phaser_fmcw_standalone, options=None):
+def main(top_block_cls=phaser_fmcw, options=None):
 
     qapp = Qt.QApplication(sys.argv)
 
     tb = top_block_cls()
 
     tb.start()
+    tb.flowgraph_started.set()
 
     tb.show()
 

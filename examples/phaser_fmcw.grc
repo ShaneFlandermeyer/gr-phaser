@@ -11,7 +11,7 @@ options:
     gen_linking: dynamic
     generate_options: qt_gui
     hier_block_src_path: '.:'
-    id: phaser_fmcw_standalone
+    id: phaser_fmcw
     max_nouts: '0'
     output_language: python
     placement: (0,0)
@@ -33,23 +33,11 @@ options:
     state: enabled
 
 blocks:
-- name: angle
-  id: variable
-  parameters:
-    comment: ''
-    value: '0'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [376, 20.0]
-    rotation: 0
-    state: enabled
 - name: samp_rate
   id: variable
   parameters:
     comment: ''
-    value: 2e6
+    value: 5e6
   states:
     bus_sink: false
     bus_source: false
@@ -92,22 +80,22 @@ blocks:
     phaser_output_freq: 10e9
     phaser_uri: ip:phaser.local
     pri: 1/10e3
-    radar_mode: '''fmcw'''
+    radar_mode: '''pulsed'''
     rx_enabled_channels: '[0, 1]'
-    rx_gain: '20'
-    rx_offset_samples: '0'
+    rx_gain: '0'
+    rx_offset_samples: '102'
     sample_rate: samp_rate
     sdr_freq: 2.1e9
     sdr_uri: ip:pluto.local
     tx_cyclic_buffer: 'True'
     tx_enabled_channels: '[0, 1]'
-    tx_hardwaregain_chan0: '0'
+    tx_hardwaregain_chan0: '-80'
     tx_hardwaregain_chan1: '0'
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [424, 236.0]
+    coordinate: [408, 220.0]
     rotation: 0
     state: enabled
 - name: phaser_sum_beams_0
@@ -123,7 +111,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [672, 296.0]
+    coordinate: [680, 280.0]
     rotation: 0
     state: enabled
 - name: qtgui_time_sink_x_0
@@ -220,7 +208,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [928, 288.0]
+    coordinate: [936, 272.0]
     rotation: 0
     state: enabled
 
@@ -230,4 +218,4 @@ connections:
 
 metadata:
   file_format: 1
-  grc_version: 3.10.9.2
+  grc_version: v3.10.11.0-1-gee27d6f3

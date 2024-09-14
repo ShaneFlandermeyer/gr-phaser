@@ -11,62 +11,50 @@ options:
     gen_linking: dynamic
     generate_options: qt_gui
     hier_block_src_path: '.:'
-    id: phaser_zmq_host_fmcw
+    id: phaser_pulsed
     max_nouts: '0'
     output_language: python
     placement: (0,0)
     qt_qss_theme: ''
     realtime_scheduling: ''
     run: 'True'
-    run_command: '{python} -u {filename}'
+    run_command: '{python} {filename}'
     run_options: prompt
     sizing_mode: fixed
     thread_safe_setters: ''
     title: Not titled yet
-    window_size: (1000,1000)
+    window_size: ''
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [16, 8.0]
+    coordinate: [8, 8]
     rotation: 0
     state: enabled
 
 blocks:
-- name: center_freq
+- name: bandwidth
   id: variable
   parameters:
     comment: ''
-    value: 10e9
+    value: 2/3*samp_rate
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [408, 16.0]
-    rotation: 0
-    state: enabled
-- name: rpi_ip
-  id: variable
-  parameters:
-    comment: ''
-    value: '"169.254.227.151"'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [272, 16.0]
+    coordinate: [272, 8.0]
     rotation: 0
     state: enabled
 - name: samp_rate
   id: variable
   parameters:
     comment: ''
-    value: 2e6
+    value: 30e6
   states:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [176, 16.0]
+    coordinate: [176, 8.0]
     rotation: 0
     state: enabled
 - name: import_0
@@ -79,7 +67,47 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [16, 96.0]
+    coordinate: [8, 96.0]
+    rotation: 0
+    state: enabled
+- name: phaser_phaser_radar_0
+  id: phaser_phaser_radar
+  parameters:
+    affinity: ''
+    alias: ''
+    burst_start_sample: '0'
+    burst_stop_sample: '-1'
+    comment: ''
+    fmcw_if_freq: 100e3
+    fmcw_ramp_mode: '''single_sawtooth_burst'''
+    fmcw_sweep_bandwidth: 500e6
+    fmcw_sweep_duration: 500e-6
+    gain_cal_file: ''
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    num_bursts: '5'
+    phase_cal_file: ''
+    phaser_chan_gain: '[127]*8'
+    phaser_chan_phase: '[0, 0, 0, 0, 0, 0, 0, 0]'
+    phaser_output_freq: 10e9
+    phaser_uri: ip:phaser.local
+    pri: 1/10e3
+    radar_mode: '''pulsed'''
+    rx_enabled_channels: '[0, 1]'
+    rx_gain: '0'
+    rx_offset_samples: '102'
+    sample_rate: samp_rate
+    sdr_freq: 2.1e9
+    sdr_uri: ip:pluto.local
+    tx_cyclic_buffer: 'True'
+    tx_enabled_channels: '[0, 1]'
+    tx_hardwaregain_chan0: '-80'
+    tx_hardwaregain_chan1: '0'
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [400, 220.0]
     rotation: 0
     state: enabled
 - name: phaser_sum_beams_0
@@ -95,7 +123,33 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [400, 320.0]
+    coordinate: [680, 280.0]
+    rotation: 0
+    state: enabled
+- name: plasma_lfm_source_0
+  id: plasma_lfm_source
+  parameters:
+    affinity: ''
+    alias: ''
+    bandwidth: bandwidth
+    bandwidth_key: radar:bandwidth
+    comment: ''
+    duration_key: radar:duration
+    label_key: core:label
+    maxoutbuf: '0'
+    minoutbuf: '0'
+    prf: '0'
+    prf_key: radar:prf
+    pulse_width: 20e-6
+    samp_rate: samp_rate
+    sample_rate_key: core:sample_rate
+    start_freq: -bandwidth/2
+    start_freq_key: radar:start_freq
+  states:
+    bus_sink: false
+    bus_source: false
+    bus_structure: null
+    coordinate: [168, 256.0]
     rotation: 0
     state: enabled
 - name: qtgui_time_sink_x_0
@@ -192,32 +246,15 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [664, 312.0]
-    rotation: 0
-    state: enabled
-- name: zeromq_sub_msg_source_0
-  id: zeromq_sub_msg_source
-  parameters:
-    address: f"tcp://{rpi_ip}:3001"
-    affinity: ''
-    alias: ''
-    bind: 'False'
-    comment: ''
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    timeout: '100'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [160, 312.0]
+    coordinate: [936, 272.0]
     rotation: 0
     state: enabled
 
 connections:
+- [phaser_phaser_radar_0, out, phaser_sum_beams_0, in]
 - [phaser_sum_beams_0, out, qtgui_time_sink_x_0, in]
-- [zeromq_sub_msg_source_0, out, phaser_sum_beams_0, in]
+- [plasma_lfm_source_0, out, phaser_phaser_radar_0, in]
 
 metadata:
   file_format: 1
-  grc_version: 3.10.9.2
+  grc_version: v3.10.11.0-1-gee27d6f3
