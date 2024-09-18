@@ -1,63 +1,39 @@
-id: phaser_phaser_radar
-label: Phaser Radar
+id: phaser_pluto_radar
+label: Pluto Radar
 category: "[phaser]"
 
 templates:
   imports: from gnuradio import phaser
   make: |-
-    phaser.phaser_radar(
-      ${sdr_uri},
-      ${sample_rate},
-      ${sdr_freq},
-      ${rx_enabled_channels},
-      ${rx_gain},
-      ${rx_offset_samples},
-      ${burst_start_sample},
-      ${burst_stop_sample},
-      ${tx_enabled_channels},
-      ${tx_hardwaregain_chan0},
-      ${tx_hardwaregain_chan1},
-      ${tx_cyclic_buffer},
-      ${phaser_uri},
-      ${phaser_output_freq},
-      ${phaser_chan_phase},
-      ${phaser_chan_gain},
-      ${gain_cal_file},
-      ${phase_cal_file},
+    phaser.pluto_radar(
+      ${uri}, 
+      ${sample_rate}, 
+      ${center_freq}, 
+      ${rx_gain}, 
+      ${rx_offset_samples}, 
+      ${burst_start_sample}, 
+      ${burst_stop_sample}, 
+      ${tx_gain},
+      ${tx_cyclic_buffer}, 
       ${radar_mode},
-      ${num_bursts},
-      ${pri},
-      ${fmcw_sweep_duration},
-      ${fmcw_if_freq},
-      ${fmcw_sweep_bandwidth},
-      ${fmcw_ramp_mode},
-    )
+      ${num_bursts}, 
+      ${pri})
 
 parameters:
-  - id: sdr_uri
+  - id: uri
     label: SDR URI
     dtype: string
-    default: ip:192.168.2.1
+    default: ip:pluto.local
     category: SDR
-  - id: phaser_uri
-    label: Phaser URI
-    dtype: string
-    default: "ip:phaser.local"
-    category: Phaser
   - id: sample_rate
     label: Sample rate
     dtype: float
     default: 1e6
     category: SDR
-  - id: sdr_freq
-    label: SDR Center Frequency
+  - id: center_freq
+    label: Center Frequency
     dtype: float
     default: 2.1e9
-    category: SDR
-  - id: rx_enabled_channels
-    label: Rx Enabled Channels
-    dtype: int_vector
-    default: [0, 1]
     category: SDR
   - id: rx_gain
     label: Rx Gain
@@ -71,32 +47,8 @@ parameters:
     default: 0
     category: SDR
     hide: part
-  - id: burst_start_sample
-    label: Burst Start Sample
-    dtype: int
-    default: -1
-    category: SDR
-    hide: part
-  - id: burst_stop_sample
-    label: Burst Stop Sample
-    dtype: int
-    default: -1
-    category: SDR
-    hide: part
-  # Tx params
-  - id: tx_enabled_channels
-    label: Tx Enabled Channels
-    dtype: int_vector
-    default: [0, 1]
-    category: SDR
-  - id: tx_hardwaregain_chan0
+  - id: tx_gain
     label: Tx Hardware Gain (chan0)
-    dtype: float
-    default: -88
-    category: SDR
-    hide: part
-  - id: tx_hardwaregain_chan1
-    label: Tx Hardware Gain (chan1)
     dtype: float
     default: -88
     category: SDR
@@ -108,33 +60,17 @@ parameters:
     option_labels: ["True", "False"]
     category: SDR
     hide: part
-  # Phaser params
-  - id: phaser_output_freq
-    label: Phaser Output Frequency
-    dtype: float
-    default: 10e9
-    category: Phaser
-  - id: phaser_chan_phase
-    label: Phaser channel phase shifts
-    dtype: float_vector
-    default: [0, 0, 0, 0, 0, 0, 0, 0]
-    category: Phaser
+  - id: burst_start_sample
+    label: Burst Start Sample
+    dtype: int
+    default: -1
+    category: SDR
     hide: part
-  - id: phaser_chan_gain
-    label: Phaser channel gains
-    dtype: float_vector
-    default: [64, 64, 64, 64, 64, 64, 64, 64]
-    category: Phaser
-    hide: part
-  - id: gain_cal_file
-    label: Gain Calibration File
-    dtype: file_save
-    category: Phaser
-    hide: part
-  - id: phase_cal_file
-    label: Phase Calibration File
-    dtype: file_save
-    category: Phaser
+  - id: burst_stop_sample
+    label: Burst Stop Sample
+    dtype: int
+    default: -1
+    category: SDR
     hide: part
   # Radar params
   - id: radar_mode
