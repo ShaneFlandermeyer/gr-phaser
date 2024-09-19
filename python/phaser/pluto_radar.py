@@ -116,7 +116,7 @@ class pluto_radar(gr.sync_block):
 
       self.tddn.sync_soft = 1
 
-      data = np.asarray(self.sdr.rx())[:, self.rx_offset_samples:]
+      data = np.asarray(self.sdr.rx())[self.rx_offset_samples:]
 
       # Extract desired range swath from each burst
       start, stop = self.burst_start_sample, self.burst_stop_sample
@@ -141,20 +141,20 @@ class pluto_radar(gr.sync_block):
     return True
 
   def init_pluto(self):
-    self.sdr = adi.ad9361(uri=self.sdr_ip)
+    self.sdr = adi.Pluto(uri=self.sdr_ip)
 
     # Configure Rx
     self.sdr.sample_rate = int(self.sample_rate)
     self.sdr.rx_lo = int(self.center_freq)
-    self.sdr._rxadc.set_kernel_buffers_count(1)  # No stale buffers to flush
-    self.sdr.rx_enabled_channels = [0]
+    # self.sdr.rx_enabled_channels = [0]
+    # self.sdr._rxadc.set_kernel_buffers_count(1)  # No stale buffers to flush
     self.sdr.gain_control_mode_chan0 = 'manual'  # manual or slow_attack
     self.sdr.rx_hardwaregain_chan0 = int(self.rx_gain) # Between -3 and 70
     
 
     # Configure Tx
     self.sdr.tx_lo = int(self.center_freq)
-    self.sdr.tx_enabled_channels = [0]
+    # self.sdr.tx_enabled_channels = [0]
     self.sdr.tx_hardwaregain_chan0 = self.tx_gain
     self.sdr.tx_cyclic_buffer = self.tx_cyclic_buffer
 
@@ -163,7 +163,7 @@ class pluto_radar(gr.sync_block):
     self.sdr.rx_buffer_size = num_buffer_samps + self.rx_offset_samples
 
     # Configure TDD
-    decimation = 2
+    decimation = 1
     frame_length_raw = decimation*num_burst_samps - 1
     self.tddn = self.init_tdd(startup_delay_ms=0,
                               frame_length_raw=frame_length_raw,
