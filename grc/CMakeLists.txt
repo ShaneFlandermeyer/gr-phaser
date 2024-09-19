@@ -7,4 +7,5 @@
 #
 install(FILES
     phaser_phaser_radar.block.yml
-    phaser_sum_beams.block.yml DESTINATION share/gnuradio/grc/blocks)
+    phaser_sum_beams.block.yml
+    phaser_pluto_radar.block.yml DESTINATION share/gnuradio/grc/blocks)
