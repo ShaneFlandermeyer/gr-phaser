@@ -20,7 +20,9 @@ add_subdirectory(bindings)
 # Install python sources
 ########################################################################
 gr_python_install(FILES __init__.py
-    phaser_radar.py DESTINATION ${GR_PYTHON_DIR}/gnuradio/phaser)
+    phaser_radar.py 
+    pluto_radar.py
+    DESTINATION ${GR_PYTHON_DIR}/gnuradio/phaser)
 
 ########################################################################
 # Handle the unit tests

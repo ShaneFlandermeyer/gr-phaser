@@ -3,9 +3,9 @@ label: Phaser Radar
 category: "[phaser]"
 
 templates:
-  imports: from gnuradio.phaser import phaser_radar
+  imports: from gnuradio import phaser
   make: |-
-    phaser_radar.blk(
+    phaser.phaser_radar(
       ${sdr_uri},
       ${sample_rate},
       ${sdr_freq},

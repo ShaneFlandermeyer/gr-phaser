@@ -20,6 +20,5 @@ except ModuleNotFoundError:
     pass
 
 # import any pure python here
-
-
-#
+from .pluto_radar import pluto_radar
+from .phaser_radar import phaser_radar

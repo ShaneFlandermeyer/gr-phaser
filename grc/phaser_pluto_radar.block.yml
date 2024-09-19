@@ -1,0 +1,98 @@
+id: phaser_pluto_radar
+label: Pluto Radar
+category: "[phaser]"
+
+templates:
+  imports: from gnuradio import phaser
+  make: |-
+    phaser.pluto_radar(
+      ${uri}, 
+      ${sample_rate}, 
+      ${center_freq}, 
+      ${rx_gain}, 
+      ${rx_offset_samples}, 
+      ${burst_start_sample}, 
+      ${burst_stop_sample}, 
+      ${tx_gain},
+      ${tx_cyclic_buffer}, 
+      ${num_bursts}, 
+      ${burst_repetition_interval})
+
+parameters:
+  - id: uri
+    label: SDR URI
+    dtype: string
+    default: ip:pluto.local
+    category: SDR
+  - id: sample_rate
+    label: Sample rate
+    dtype: float
+    default: 1e6
+    category: SDR
+  - id: center_freq
+    label: Center Frequency
+    dtype: float
+    default: 2.1e9
+    category: SDR
+  - id: rx_gain
+    label: Rx Gain
+    dtype: float
+    default: 20
+    category: SDR
+    hide: part
+  - id: rx_offset_samples
+    label: Rx Offset Samples
+    dtype: int
+    default: 0
+    category: SDR
+    hide: part
+  - id: tx_gain
+    label: Tx Hardware Gain (chan0)
+    dtype: float
+    default: -88
+    category: SDR
+    hide: part
+  - id: tx_cyclic_buffer
+    label: Tx Cyclic buffer
+    dtype: enum
+    options: [True, False]
+    option_labels: ["True", "False"]
+    category: SDR
+    hide: part
+  - id: burst_start_sample
+    label: Burst Start Sample
+    dtype: int
+    default: -1
+    category: SDR
+    hide: part
+  - id: burst_stop_sample
+    label: Burst Stop Sample
+    dtype: int
+    default: -1
+    category: SDR
+    hide: part
+  # Pulsed mode
+  - id: num_bursts
+    label: Num Bursts
+    dtype: int
+    default: 1
+    category: Radar
+  - id: burst_repetition_interval
+    label: Burst Repetition Interval (PRI)
+    dtype: float
+    default: 1e-3
+    category: Radar
+
+inputs:
+  - label: in
+    domain: message
+    optional: True
+
+outputs:
+  - label: out
+    domain: message
+    optional: True
+
+#  'file_format' specifies the version of the GRC yml format used in the file
+#  and should usually not be changed.
+file_format: 1

@@ -16,7 +16,7 @@ from typing import List, Optional
 import scipy
 
 
-class blk(gr.sync_block):
+class phaser_radar(gr.sync_block):
   """
   docstring for block phaser_radar
   """
