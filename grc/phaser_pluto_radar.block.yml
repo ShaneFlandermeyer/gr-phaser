@@ -16,7 +16,7 @@ templates:
       ${tx_gain},
       ${tx_cyclic_buffer}, 
       ${num_bursts}, 
-      ${pri})
+      ${burst_repetition_interval})
 
 parameters:
   - id: uri
@@ -73,17 +73,15 @@ parameters:
     hide: part
   # Pulsed mode
   - id: num_bursts
-    label: Num of Pulses
+    label: Num Bursts
     dtype: int
     default: 1
     category: Radar
-    hide: part
-  - id: pri
-    label: Pulse Repetition Interval (PRI)
+  - id: burst_repetition_interval
+    label: Burst Repetition Interval (PRI)
     dtype: float
     default: 1e-3
     category: Radar
-    hide: part
 
 inputs:
   - label: in

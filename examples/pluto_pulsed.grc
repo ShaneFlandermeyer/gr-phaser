@@ -103,7 +103,7 @@ blocks:
     phaser_chan_phase: '[0, 0, 0, 0, 0, 0, 0, 0]'
     phaser_output_freq: 10e9
     phaser_uri: ip:phaser.local
-    pri: 1/2e3
+    pri: 1e-3
     radar_mode: '''pulsed'''
     rx_enabled_channels: '[0, 1]'
     rx_gain: '10'
@@ -127,6 +127,7 @@ blocks:
   parameters:
     affinity: ''
     alias: ''
+    burst_repetition_interval: 1/10e3
     burst_start_sample: '-1'
     burst_stop_sample: '-1'
     center_freq: 2.1e9
@@ -134,7 +135,6 @@ blocks:
     maxoutbuf: '0'
     minoutbuf: '0'
     num_bursts: '128'
-    pri: 1/10e3
     rx_gain: '20'
     rx_offset_samples: '118'
     sample_rate: samp_rate
@@ -171,7 +171,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [160, 172.0]
+    coordinate: [160, 204.0]
     rotation: 0
     state: enabled
 - name: plasma_pulse_doppler_0
@@ -191,7 +191,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [920, 180.0]
+    coordinate: [752, 220.0]
     rotation: 0
     state: enabled
 - name: plasma_range_doppler_sink_0
@@ -217,7 +217,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [1168, 180.0]
+    coordinate: [1016, 220.0]
     rotation: 0
     state: enabled
 - name: qtgui_time_sink_x_0
@@ -314,7 +314,7 @@ blocks:
     bus_sink: false
     bus_source: false
     bus_structure: null
-    coordinate: [952, 316.0]
+    coordinate: [784, 324.0]
     rotation: 0
     state: enabled
 

@@ -32,7 +32,7 @@ class pluto_radar(gr.sync_block):
                tx_gain,
                tx_cyclic_buffer,
                num_bursts,
-               pri):
+               burst_repetition_interval):
     gr.sync_block.__init__(self,
                            name="pluto_radar",
                            in_sig=[],
@@ -72,9 +72,9 @@ class pluto_radar(gr.sync_block):
     self.tx_cyclic_buffer = tx_cyclic_buffer
     # Radar params
     self.num_bursts = num_bursts
-    self.pri = pri
+    self.burst_repetition_interval = burst_repetition_interval
     # Derived parameters
-    self.prf = 1 / self.pri
+    self.prf = 1 / self.burst_repetition_interval
     self.meta = pmt.dict_add(self.meta, pmt.intern("pluto:prf"),
                              pmt.from_double(self.prf))
 
@@ -156,8 +156,8 @@ class pluto_radar(gr.sync_block):
     self.sdr.tx_hardwaregain_chan0 = self.tx_gain
     self.sdr.tx_cyclic_buffer = self.tx_cyclic_buffer
 
-    num_burst_samps = int(self.pri * self.sample_rate)
-    num_buffer_samps = int(self.pri * self.sample_rate * self.num_bursts)
+    num_burst_samps = int(self.burst_repetition_interval * self.sample_rate)
+    num_buffer_samps = int(self.burst_repetition_interval * self.sample_rate * self.num_bursts)
     self.sdr.rx_buffer_size = num_buffer_samps + self.rx_offset_samples
 
     # Configure TDD
