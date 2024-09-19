@@ -10,19 +10,19 @@
 
 from PyQt5 import Qt
 from gnuradio import qtgui
-from PyQt5 import Qt
-from gnuradio import plasma
-import sip
 from gnuradio import gr
 from gnuradio.filter import firdes
 from gnuradio.fft import window
 import sys
 import signal
+from PyQt5 import Qt
 from argparse import ArgumentParser
 from gnuradio.eng_arg import eng_float, intx
 from gnuradio import eng_notation
 from gnuradio import phaser
+from gnuradio import plasma
 import numpy as np
+import sip
 
 
 
@@ -120,24 +120,14 @@ class pluto_pulsed(gr.top_block, Qt.QWidget):
 
         self._qtgui_time_sink_x_0_win = sip.wrapinstance(self.qtgui_time_sink_x_0.qwidget(), Qt.QWidget)
         self.top_layout.addWidget(self._qtgui_time_sink_x_0_win)
-        self.plasma_range_doppler_sink_0 = plasma.range_doppler_sink(samp_rate, ncpi, 10e9)
-        self.plasma_range_doppler_sink_0.set_metadata_keys('core:sample_rate', 'n_matrix_col', 'core:frequency', 'dynamic_range', 'pluto:prf', 'radar:duration', 'detection_indices')
-        self.plasma_range_doppler_sink_0.set_dynamic_range(60)
-        self.plasma_range_doppler_sink_0.set_msg_queue_depth(1)
-        self._plasma_range_doppler_sink_0_win = sip.wrapinstance(self.plasma_range_doppler_sink_0.pyqwidget(), Qt.QWidget)
-        self.top_layout.addWidget(self._plasma_range_doppler_sink_0_win)
-        self.plasma_pulse_doppler_0 = plasma.pulse_doppler(ncpi, ncpi)
-        self.plasma_pulse_doppler_0.set_msg_queue_depth(1)
-        self.plasma_pulse_doppler_0.set_backend(plasma.Device.DEFAULT)
-        self.plasma_pulse_doppler_0.init_meta_dict('doppler_fft_size')
         self.plasma_lfm_source_0 = plasma.lfm_source(bandwidth, -bandwidth/2, 20e-6, samp_rate, 0)
         self.plasma_lfm_source_0.init_meta_dict('radar:bandwidth', 'radar:start_freq', 'radar:duration', 'core:sample_rate', 'core:label', 'radar:prf')
         self.phaser_pluto_radar_0 = phaser.pluto_radar(
           'ip:pluto.local',
           samp_rate,
           2.1e9,
-          20,
-          118,
+          40,
+          117,
           (-1),
           (-1),
           0,
@@ -149,11 +139,8 @@ class pluto_pulsed(gr.top_block, Qt.QWidget):
         ##################################################
         # Connections
         ##################################################
-        self.msg_connect((self.phaser_pluto_radar_0, 'out'), (self.plasma_pulse_doppler_0, 'rx'))
         self.msg_connect((self.phaser_pluto_radar_0, 'out'), (self.qtgui_time_sink_x_0, 'in'))
         self.msg_connect((self.plasma_lfm_source_0, 'out'), (self.phaser_pluto_radar_0, 'in'))
-        self.msg_connect((self.plasma_lfm_source_0, 'out'), (self.plasma_pulse_doppler_0, 'tx'))
-        self.msg_connect((self.plasma_pulse_doppler_0, 'out'), (self.plasma_range_doppler_sink_0, 'in'))
 
 
     def closeEvent(self, event):

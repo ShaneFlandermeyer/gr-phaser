@@ -82,46 +82,6 @@ blocks:
     coordinate: [8, 96.0]
     rotation: 0
     state: enabled
-- name: phaser_phaser_radar_0
-  id: phaser_phaser_radar
-  parameters:
-    affinity: ''
-    alias: ''
-    burst_start_sample: '0'
-    burst_stop_sample: '1500'
-    comment: ''
-    fmcw_if_freq: 100e3
-    fmcw_ramp_mode: '''single_sawtooth_burst'''
-    fmcw_sweep_bandwidth: 500e6
-    fmcw_sweep_duration: 500e-6
-    gain_cal_file: ''
-    maxoutbuf: '0'
-    minoutbuf: '0'
-    num_bursts: ncpi
-    phase_cal_file: ''
-    phaser_chan_gain: '[127]*8'
-    phaser_chan_phase: '[0, 0, 0, 0, 0, 0, 0, 0]'
-    phaser_output_freq: 10e9
-    phaser_uri: ip:phaser.local
-    pri: 1e-3
-    radar_mode: '''pulsed'''
-    rx_enabled_channels: '[0, 1]'
-    rx_gain: '10'
-    rx_offset_samples: '102'
-    sample_rate: samp_rate
-    sdr_freq: 2.1e9
-    sdr_uri: ip:pluto.local
-    tx_cyclic_buffer: 'True'
-    tx_enabled_channels: '[0, 1]'
-    tx_hardwaregain_chan0: '-80'
-    tx_hardwaregain_chan1: '0'
-  states:
-    bus_sink: false
-    bus_source: false
-    bus_structure: null
-    coordinate: [400, 404.0]
-    rotation: 0
-    state: disabled
 - name: phaser_pluto_radar_0
   id: phaser_pluto_radar
   parameters:
@@ -135,8 +95,8 @@ blocks:
     maxoutbuf: '0'
     minoutbuf: '0'
     num_bursts: '128'
-    rx_gain: '20'
-    rx_offset_samples: '118'
+    rx_gain: '40'
+    rx_offset_samples: '117'
     sample_rate: samp_rate
     tx_cyclic_buffer: 'True'
     tx_gain: '0'
@@ -193,7 +153,7 @@ blocks:
     bus_structure: null
     coordinate: [752, 220.0]
     rotation: 0
-    state: enabled
+    state: disabled
 - name: plasma_range_doppler_sink_0
   id: plasma_range_doppler_sink
   parameters:
@@ -219,7 +179,7 @@ blocks:
     bus_structure: null
     coordinate: [1016, 220.0]
     rotation: 0
-    state: enabled
+    state: disabled
 - name: qtgui_time_sink_x_0
   id: qtgui_time_sink_x
   parameters:
@@ -321,7 +281,6 @@ blocks:
 connections:
 - [phaser_pluto_radar_0, out, plasma_pulse_doppler_0, rx]
 - [phaser_pluto_radar_0, out, qtgui_time_sink_x_0, in]
-- [plasma_lfm_source_0, out, phaser_phaser_radar_0, in]
 - [plasma_lfm_source_0, out, phaser_pluto_radar_0, in]
 - [plasma_lfm_source_0, out, plasma_pulse_doppler_0, tx]
 - [plasma_pulse_doppler_0, out, plasma_range_doppler_sink_0, in]
