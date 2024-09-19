@@ -15,7 +15,6 @@ templates:
       ${burst_stop_sample}, 
       ${tx_gain},
       ${tx_cyclic_buffer}, 
-      ${radar_mode},
       ${num_bursts}, 
       ${pri})
 
@@ -72,16 +71,9 @@ parameters:
     default: -1
     category: SDR
     hide: part
-  # Radar params
-  - id: radar_mode
-    label: Radar Mode
-    dtype: enum
-    options: ["'fmcw'", "'pulsed'"]
-    option_labels: ["FMCW", "Pulsed"]
-    category: Radar
   # Pulsed mode
   - id: num_bursts
-    label: Num of Pulses/Chirps
+    label: Num of Pulses
     dtype: int
     default: 1
     category: Radar
@@ -91,45 +83,7 @@ parameters:
     dtype: float
     default: 1e-3
     category: Radar
-    hide: ${'part' if radar_mode == "'pulsed'" else 'all'}
-  # FMCW mode
-  - id: fmcw_sweep_duration
-    label: Sweep duration
-    dtype: float
-    default: 500e-6
-    category: Radar
-    hide: ${'part' if radar_mode == "'fmcw'" else 'all'}
-  - id: fmcw_sweep_bandwidth
-    label: Sweep Bandwidth
-    dtype: float
-    default: 500e6
-    category: Radar
-    hide: ${'part' if radar_mode == "'fmcw'" else 'all'}
-  - id: fmcw_if_freq
-    label: IF Frequency
-    dtype: float
-    default: 100e3
-    category: Radar
-    hide: ${'part' if radar_mode == "'fmcw'" else 'all'}
-  - id: fmcw_ramp_mode
-    label: Ramp Mode
-    dtype: enum
-    options:
-      [
-        "'single_sawtooth_burst'",
-        "'single_ramp_burst'",
-        "'continuous_sawtooth'",
-        "'continuous_triangular'",
-      ]
-    option_labels:
-      [
-        "Single Sawtooth Burst",
-        "Single Ramp Burst",
-        "Continuous Sawtooth",
-        "Continuous Triangular",
-      ]
-    category: Radar
-    hide: ${'part' if radar_mode == "'fmcw'" else 'all'}
+    hide: part
 
 inputs:
   - label: in
