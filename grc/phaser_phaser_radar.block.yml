@@ -26,7 +26,7 @@ templates:
       ${phase_cal_file},
       ${radar_mode},
       ${num_bursts},
-      ${pri},
+      ${burst_repetition_interval},
       ${fmcw_sweep_duration},
       ${fmcw_if_freq},
       ${fmcw_sweep_bandwidth},
@@ -145,17 +145,15 @@ parameters:
     category: Radar
   # Pulsed mode
   - id: num_bursts
-    label: Num of Pulses/Chirps
+    label: Num Bursts
     dtype: int
     default: 1
     category: Radar
-    hide: part
-  - id: pri
-    label: Pulse Repetition Interval (PRI)
+  - id: burst_repetition_interval
+    label: Burst repetition Interval
     dtype: float
     default: 1e-3
     category: Radar
-    hide: ${'part' if radar_mode == "'pulsed'" else 'all'}
   # FMCW mode
   - id: fmcw_sweep_duration
     label: Sweep duration

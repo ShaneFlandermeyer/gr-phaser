@@ -46,7 +46,7 @@ class blk(gr.sync_block):
                # Radar params
                radar_mode: str,
                num_bursts: int,
-               pri: float,
+               burst_repetition_interval: float,
                fmcw_sweep_duration: float,
                fmcw_if_freq: float,
                fmcw_sweep_bandwidth: float,
@@ -101,14 +101,14 @@ class blk(gr.sync_block):
     # Radar params
     self.radar_mode = radar_mode
     self.num_bursts = num_bursts
-    self.pri = pri
+    self.burst_repetition_interval = burst_repetition_interval
     self.fmcw_sweep_duration = fmcw_sweep_duration
     self.fmcw_sweep_bandwidth = fmcw_sweep_bandwidth
     self.fmcw_if_freq = fmcw_if_freq
     self.fmcw_ramp_mode = fmcw_ramp_mode
     # Derived parameters
     self.num_beams = len(self.rx_enabled_channels)
-    self.prf = 1 / self.pri
+    self.prf = 1 / self.burst_repetition_interval
     self.meta = pmt.dict_add(self.meta, pmt.intern("phaser:num_beams"),
                              pmt.from_long(self.num_beams))
     self.meta = pmt.dict_add(self.meta, pmt.intern("phaser:prf"),
@@ -253,8 +253,9 @@ class blk(gr.sync_block):
       self.init_pulsed()
 
   def init_pulsed(self) -> None:
-    num_burst_samps = int(self.pri * self.sample_rate)
-    num_buffer_samps = int(self.pri * self.sample_rate * self.num_bursts)
+    num_burst_samps = int(self.burst_repetition_interval * self.sample_rate)
+    num_buffer_samps = int(self.burst_repetition_interval *
+                           self.sample_rate * self.num_bursts)
     self.sdr.rx_buffer_size = num_buffer_samps + self.rx_offset_samples
     self.phaser.frequency = int((self.phaser_output_freq + self.sdr_freq) / 4)
 
@@ -282,7 +283,7 @@ class blk(gr.sync_block):
     self.phaser.tx_trig_en = 1
     self.phaser.enable = 0
 
-    num_burst_samps = int(self.fmcw_sweep_duration * self.sample_rate)
+    num_burst_samps = int(self.burst_repetition_interval * self.sample_rate)
     num_buffer_samps = num_burst_samps * self.num_bursts
     self.sdr.rx_buffer_size = num_buffer_samps + self.rx_offset_samples
 
