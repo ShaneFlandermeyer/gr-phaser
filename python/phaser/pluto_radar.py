@@ -146,15 +146,13 @@ class pluto_radar(gr.sync_block):
     # Configure Rx
     self.sdr.sample_rate = int(self.sample_rate)
     self.sdr.rx_lo = int(self.center_freq)
-    # self.sdr.rx_enabled_channels = [0]
-    # self.sdr._rxadc.set_kernel_buffers_count(1)  # No stale buffers to flush
+    self.sdr._rxadc.set_kernel_buffers_count(1)  # No stale buffers to flush
     self.sdr.gain_control_mode_chan0 = 'manual'  # manual or slow_attack
     self.sdr.rx_hardwaregain_chan0 = int(self.rx_gain) # Between -3 and 70
     
 
     # Configure Tx
     self.sdr.tx_lo = int(self.center_freq)
-    # self.sdr.tx_enabled_channels = [0]
     self.sdr.tx_hardwaregain_chan0 = self.tx_gain
     self.sdr.tx_cyclic_buffer = self.tx_cyclic_buffer
 
